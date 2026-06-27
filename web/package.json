@@ -1,0 +1,23 @@
+{
+  "name": "pyrochrome-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pyrochrome — sober SPA: glaze input → prediction + confidence + procedural tile + real neighbours.",
+  "license": "CC-BY-NC-SA-4.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}

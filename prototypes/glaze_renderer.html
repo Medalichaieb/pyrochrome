@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rendu d'émail — carreau stylisé</title>
+<style>
+  :root{
+    --kiln:#181310; --panel:#221A15; --panel-2:#2C231C;
+    --slip:#ECE4D6; --ash:#9C9081; --ash-dim:#6F665B;
+    --line:rgba(236,228,214,.10); --line-strong:rgba(236,228,214,.18);
+    --ember:#D98A4E; --ember-soft:rgba(217,138,78,.16);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 80% at 30% 0%, #211913 0%, var(--kiln) 60%);
+    color:var(--slip); font-family:var(--sans); line-height:1.5;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:34px 22px 56px}
+
+  header.bar{display:flex; align-items:flex-end; justify-content:space-between;
+    gap:20px; flex-wrap:wrap; padding-bottom:20px; border-bottom:1px solid var(--line)}
+  .brand .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--ember); margin:0 0 6px}
+  .brand h1{margin:0; font-size:27px; font-weight:600; letter-spacing:-.01em}
+  .brand p{margin:6px 0 0; color:var(--ash); font-size:13.5px; max-width:42ch}
+
+  .firing{display:flex; gap:18px; flex-wrap:wrap}
+  .firing .field{display:flex; flex-direction:column; gap:6px}
+  .firing label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--ash)}
+  select{appearance:none; background:var(--panel-2); color:var(--slip);
+    border:1px solid var(--line-strong); border-radius:8px; padding:7px 30px 7px 11px;
+    font-family:var(--mono); font-size:13px; cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ash) 50%),linear-gradient(135deg,var(--ash) 50%,transparent 50%);
+    background-position:calc(100% - 15px) 14px,calc(100% - 10px) 14px; background-size:5px 5px,5px 5px; background-repeat:no-repeat}
+  .seg{display:inline-flex; background:var(--panel-2); border:1px solid var(--line-strong);
+    border-radius:8px; padding:3px; gap:2px}
+  .seg button{background:none; border:0; color:var(--ash); font-family:var(--mono);
+    font-size:12px; padding:5px 11px; border-radius:6px; cursor:pointer; letter-spacing:.02em}
+  .seg button[aria-pressed="true"]{background:var(--ember-soft); color:var(--slip)}
+
+  .stage{display:grid; grid-template-columns:1.04fr .96fr; gap:30px;
+    align-items:start; margin-top:28px}
+
+  .lightbox{position:relative; background:linear-gradient(180deg,#0F0B09,#1C1510);
+    border:1px solid var(--line); border-radius:16px; padding:18px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 24px 60px -30px rgba(0,0,0,.8)}
+  .lightbox::before{content:""; position:absolute; inset:0; border-radius:16px; pointer-events:none;
+    background:radial-gradient(70% 45% at 42% 12%, rgba(255,241,224,.10), transparent 70%)}
+  canvas.tile{width:100%; height:auto; display:block; border-radius:8px}
+  .stamp{position:absolute; left:26px; bottom:22px; font-family:var(--mono);
+    font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ash-dim)}
+
+  .panel{display:flex; flex-direction:column; gap:22px}
+  .group{display:flex; flex-direction:column; gap:11px}
+  .group > .glabel{font-family:var(--mono); font-size:10.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--ash); display:flex; justify-content:space-between; align-items:center}
+  .glabel .val{color:var(--slip); text-transform:none; letter-spacing:0}
+
+  .colorrow{display:flex; align-items:center; gap:14px}
+  input[type=color]{appearance:none; -webkit-appearance:none; width:54px; height:54px;
+    border:1px solid var(--line-strong); border-radius:12px; background:none; cursor:pointer; padding:0}
+  input[type=color]::-webkit-color-swatch-wrapper{padding:4px}
+  input[type=color]::-webkit-color-swatch{border:none; border-radius:8px}
+  .swatches{display:flex; gap:7px; flex-wrap:wrap}
+  .sw{width:26px; height:26px; border-radius:7px; border:1px solid var(--line-strong); cursor:pointer; padding:0}
+  .sw:hover{transform:translateY(-1px)}
+
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:4px;
+    background:var(--line-strong); border-radius:3px; outline:none; cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px;
+    border-radius:50%; background:var(--slip); border:3px solid var(--kiln); box-shadow:0 0 0 1px var(--line-strong)}
+  input[type=range]::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:var(--slip); border:3px solid var(--kiln)}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{background:var(--panel-2); border:1px solid var(--line-strong); color:var(--ash);
+    font-family:var(--mono); font-size:12px; padding:7px 12px; border-radius:999px; cursor:pointer;
+    transition:transform .12s ease, color .12s ease}
+  .chip:hover{transform:translateY(-1px)}
+  .chip[aria-pressed="true"]{background:var(--ember-soft); border-color:rgba(217,138,78,.4); color:var(--slip)}
+
+  .presets{display:flex; flex-wrap:wrap; gap:8px}
+  .preset{background:none; border:1px solid var(--line); color:var(--slip);
+    font-size:12.5px; padding:8px 13px; border-radius:9px; cursor:pointer; transition:border-color .12s, background .12s}
+  .preset:hover{border-color:var(--line-strong); background:rgba(236,228,214,.04)}
+
+  .readout{font-family:var(--mono); font-size:12.5px; color:var(--ash);
+    background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 15px}
+  .readout .line{display:flex; justify-content:space-between; padding:3px 0}
+  .readout .line b{color:var(--slip); font-weight:500}
+  .reroll{background:none;border:1px solid var(--line);color:var(--ash);font-family:var(--mono);
+    font-size:11px;letter-spacing:.05em;padding:6px 11px;border-radius:8px;cursor:pointer}
+  .reroll:hover{color:var(--slip);border-color:var(--line-strong)}
+
+  .note{margin-top:26px; padding-top:18px; border-top:1px solid var(--line);
+    color:var(--ash-dim); font-size:12.5px; max-width:70ch}
+  .note b{color:var(--ash); font-weight:500}
+
+  :focus-visible{outline:2px solid var(--ember); outline-offset:2px; border-radius:6px}
+
+  @media (max-width:840px){
+    .stage{grid-template-columns:1fr; gap:22px}
+    .brand h1{font-size:23px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .fadeup{animation:fu .6s cubic-bezier(.2,.7,.2,1) both}
+    @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar fadeup">
+    <div class="brand">
+      <p class="eyebrow">rendu procédural · stylisé</p>
+      <h1>Aperçu d'un émail avant cuisson</h1>
+      <p>Règle les attributs prédits — le carreau-test se redessine. Sur le site, ces valeurs viendront du modèle ; ici tu les pilotes à la main.</p>
+    </div>
+    <div class="firing">
+      <div class="field">
+        <label for="cone">Cône</label>
+        <select id="cone">
+          <option>06</option><option>04</option><option>1</option>
+          <option selected>6</option><option>8</option><option>10</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Atmosphère</label>
+        <div class="seg" id="atm" role="group" aria-label="Atmosphère">
+          <button data-atm="oxidation" aria-pressed="true">Oxydation</button>
+          <button data-atm="reduction" aria-pressed="false">Réduction</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="lightbox fadeup" aria-label="Rendu du carreau">
+      <canvas class="tile" id="tile" width="860" height="620" role="img" aria-label="Carreau d'émail rendu"></canvas>
+      <span class="stamp" id="stamp">cône 6 · oxydation</span>
+    </section>
+
+    <section class="panel fadeup">
+      <div class="group">
+        <span class="glabel">Couleur prédite <span class="val" id="hexval">#3F6F63</span></span>
+        <div class="colorrow">
+          <input type="color" id="color" value="#3F6F63" aria-label="Couleur de base">
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Surface</span>
+        <div class="seg" id="surface" role="group" aria-label="Surface" style="align-self:flex-start">
+          <button data-s="glossy" aria-pressed="false">Brillant</button>
+          <button data-s="satin" aria-pressed="true">Satiné</button>
+          <button data-s="matte" aria-pressed="false">Mat</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Opacité <span class="val" id="opval">78%</span></span>
+        <input type="range" id="opacity" min="20" max="100" value="78" aria-label="Opacité">
+      </div>
+
+      <div class="group">
+        <span class="glabel">Effets</span>
+        <div class="chips" id="effects">
+          <button class="chip" data-fx="speckle" aria-pressed="false">Moucheté</button>
+          <button class="chip" data-fx="variegation" aria-pressed="true">Variégation</button>
+          <button class="chip" data-fx="crystalline" aria-pressed="false">Cristallisation</button>
+          <button class="chip" data-fx="runny" aria-pressed="false">Coulant</button>
+          <button class="chip" data-fx="breaking" aria-pressed="true">Cassure sur l'arête</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Présélections <button class="reroll" id="reroll" title="Re-tirer la texture">↻ texture</button></span>
+        <div class="presets" id="presets">
+          <button class="preset" data-p="celadon">Céladon (réduction)</button>
+          <button class="preset" data-p="tenmoku">Tenmoku</button>
+          <button class="preset" data-p="turquoise">Turquoise cuivre</button>
+          <button class="preset" data-p="rutile">Bleu rutile</button>
+          <button class="preset" data-p="oatmeal">Avoine moucheté</button>
+        </div>
+      </div>
+
+      <div class="readout" id="readout"></div>
+    </section>
+  </main>
+
+  <p class="note"><b>Comment ça s'emboîte.</b> Ce moteur est la <b>couche de visualisation</b> du projet : le modèle (déjà testé au stade baseline) prédit la couleur (Lab), la surface, la transparence et les effets à partir de la recette ; ce rendu transforme ces attributs en carreau stylisé, côté navigateur, sans GPU. Il ne prétend pas reproduire la photo exacte — il rend fidèlement <b>ce que le modèle a prédit</b>.</p>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('tile');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const state = {
+    color:'#3F6F63', surface:'satin', opacity:0.78,
+    speckle:false, variegation:true, crystalline:false, runny:false, breaking:true,
+    cone:'6', atm:'oxidation', seed:1734
+  };
+
+  const palette = ['#3F6F63','#2FB6B0','#5B7FA6','#7C9B86','#ECE6DA','#3A241A','#9A3B2E','#C9A24B','#6E5A8F','#2B2B2B'];
+
+  // ---------- couleur ----------
+  function hexToRgb(h){h=h.replace('#','');return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};}
+  function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h,s,l=(mx+mn)/2;if(mx===mn){h=s=0;}else{const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}h/=6;}return {h,s,l};}
+  function hslToRgb(h,s,l){let r,g,b;if(s===0){r=g=b=l;}else{const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;const hue=(t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};r=hue(h+1/3);g=hue(h);b=hue(h-1/3);}return {r:r*255,g:g*255,b:b*255};}
+  function rgbToLab(r,g,b){r/=255;g/=255;b/=255;[r,g,b]=[r,g,b].map(v=>v>.04045?Math.pow((v+.055)/1.055,2.4):v/12.92);let x=(r*.4124+g*.3576+b*.1805)/.95047,y=r*.2126+g*.7152+b*.0722,z=(r*.0193+g*.1192+b*.9505)/1.08883;[x,y,z]=[x,y,z].map(v=>v>.008856?Math.cbrt(v):7.787*v+16/116);return {L:Math.round(116*y-16),a:Math.round(500*(x-y)),bb:Math.round(200*(y-z))};}
+
+  // ---------- bruit ----------
+  function mkNoise(seed){
+    const rand=(x,y)=>{let n=Math.sin(x*127.1+y*311.7+seed*13.73)*43758.5453;return n-Math.floor(n);};
+    const sm=t=>t*t*(3-2*t);
+    return (x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+      const tl=rand(xi,yi),tr=rand(xi+1,yi),bl=rand(xi,yi+1),br=rand(xi+1,yi+1);
+      const u=sm(xf),v=sm(yf);return (tl*(1-u)+tr*u)*(1-v)+(bl*(1-u)+br*u)*v;};
+  }
+  function fbm(noise,x,y){return noise(x,y)*.6+noise(x*2.1,y*2.1)*.3+noise(x*4.3,y*4.3)*.1;}
+
+  // seeded rng for effect placement
+  function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+  // ---------- géométrie du carreau ----------
+  const tile={x:255,y:70,w:360,h:490,r:26};
+  const dipFrac=0.34; // émail trempé à mi-hauteur
+  function tilePath(){const {x,y,w,h,r}=tile;ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    const noise=mkNoise(state.seed);
+    const rgb0=hexToRgb(state.color); const hsl=rgbToHsl(rgb0.r,rgb0.g,rgb0.b);
+    const atmWarm = state.atm==='reduction';
+
+    // ombre portée
+    ctx.save();ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=46;ctx.shadowOffsetY=30;
+    tilePath();ctx.fillStyle='#000';ctx.fill();ctx.restore();
+
+    // corps en terre (clay)
+    ctx.save();tilePath();ctx.clip();
+    const clay=ctx.createLinearGradient(0,tile.y,0,tile.y+tile.h);
+    clay.addColorStop(0,'#C7A988');clay.addColorStop(1,'#A6855F');
+    ctx.fillStyle=clay;ctx.fillRect(tile.x,tile.y,tile.w,tile.h);
+    // grain de terre
+    const cl=rng(state.seed^99);for(let i=0;i<1400;i++){const px=tile.x+cl()*tile.w,py=tile.y+cl()*tile.h;ctx.fillStyle='rgba(80,55,35,'+(cl()*0.06)+')';ctx.fillRect(px,py,1.4,1.4);}
+    ctx.restore();
+
+    // ---- couche d'émail (région trempée) ----
+    const gx=tile.x, gw=tile.w;
+    const gy=Math.round(tile.y+tile.h*dipFrac), gh=Math.round(tile.y+tile.h-gy);
+    const off=document.createElement('canvas');off.width=gw;off.height=gh;
+    const octx=off.getContext('2d');const img=octx.createImageData(gw,gh);const d=img.data;
+    const matte=state.surface==='matte', satin=state.surface==='satin';
+    for(let yy=0;yy<gh;yy++){
+      const t=yy/gh; // 0 haut (arête de trempe) -> 1 bas (poolé)
+      for(let xx=0;xx<gw;xx++){
+        let L=hsl.l, S=hsl.s, Hh=hsl.h;
+        // pooling : bas plus sombre et saturé ; haut (arête) plus clair = cassure
+        L += -0.10*t;
+        S += 0.14*t;
+        if(state.breaking){const edge=Math.max(0,1-t*6);L+=0.20*edge*edge;S-=0.10*edge;}
+        // variégation
+        if(state.variegation){const n=fbm(noise,xx/70,yy/70)-0.5;L+=n*0.20;Hh+=n*0.02;S+=n*0.06;}
+        // coulant : stries verticales
+        if(state.runny){const v=fbm(noise,xx/14,yy/120);L+=(v-0.5)*0.12*t;}
+        // grain mat / satiné
+        if(matte){const hf=fbm(noise,xx/3.2,yy/3.2);L+=(hf-0.5)*0.06;}
+        else if(satin){const hf=fbm(noise,xx/5,yy/5);L+=(hf-0.5)*0.03;}
+        // atmosphère réductrice : réchauffe / approfondit
+        if(atmWarm){S+=0.05;L-=0.02;Hh-=0.006;}
+        L=Math.min(0.97,Math.max(0.03,L));S=Math.min(1,Math.max(0,S));
+        const c=hslToRgb((Hh+1)%1,S,L);
+        // alpha : transparence, plus fin en haut (laisse voir la terre)
+        let a=state.opacity*(0.62+0.38*t);
+        if(state.breaking){a*=(0.55+0.45*Math.min(1,t*5));}
+        a=Math.min(1,a);
+        // composer sur terre approximative
+        const clayMix=0.5*(t); const cr=199-40*t, cg=169-40*t, cb=136-40*t;
+        const i4=(yy*gw+xx)*4;
+        d[i4]  =c.r*a+cr*(1-a);
+        d[i4+1]=c.g*a+cg*(1-a);
+        d[i4+2]=c.b*a+cb*(1-a);
+        d[i4+3]=255;
+      }
+    }
+    octx.putImageData(img,0,0);
+    ctx.save();tilePath();ctx.clip();
+    ctx.drawImage(off,gx,gy);
+
+    // arête de trempe (ligne de cassure)
+    if(state.breaking){
+      const lg=ctx.createLinearGradient(0,gy-10,0,gy+14);
+      lg.addColorStop(0,'rgba(0,0,0,0)');lg.addColorStop(.5,'rgba(255,248,235,.18)');lg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=lg;ctx.fillRect(gx,gy-10,gw,24);
+    }
+
+    // moucheté (fer / manganèse)
+    if(state.speckle){const r=rng(state.seed^7);for(let i=0;i<260;i++){const t=r();const px=gx+r()*gw,py=gy+t*gh;const sz=0.6+r()*1.8;ctx.fillStyle='rgba('+[40,28,20].join(',')+','+(0.25+r()*0.5*(0.4+t))+')';ctx.beginPath();ctx.ellipse(px,py,sz,sz*0.8,0,0,7);ctx.fill();}}
+
+    // cristallisation (zinc / titane)
+    if(state.crystalline){const r=rng(state.seed^21);const lc=hslToRgb(hsl.h,Math.max(0,hsl.s-0.2),Math.min(0.92,hsl.l+0.22));ctx.strokeStyle='rgba('+[lc.r|0,lc.g|0,lc.b|0].join(',')+',.5)';for(let i=0;i<14;i++){const px=gx+r()*gw,py=gy+ (0.2+r()*0.8)*gh;const spokes=6+(r()*6|0),rad=6+r()*16;ctx.lineWidth=1;for(let k=0;k<spokes;k++){const ang=(k/spokes)*Math.PI*2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+Math.cos(ang)*rad,py+Math.sin(ang)*rad*0.7);ctx.stroke();}ctx.fillStyle='rgba('+[lc.r|0,lc.g|0,lc.b|0].join(',')+',.25)';ctx.beginPath();ctx.arc(px,py,2.2,0,7);ctx.fill();}}
+
+    // brillance
+    if(state.surface==='glossy'){
+      const hi=ctx.createRadialGradient(gx+gw*0.34,gy+gh*0.18,8,gx+gw*0.34,gy+gh*0.18,gw*0.7);
+      hi.addColorStop(0,'rgba(255,250,240,.42)');hi.addColorStop(.25,'rgba(255,250,240,.12)');hi.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=hi;ctx.fillRect(gx,gy,gw,gh);
+      ctx.fillStyle='rgba(255,252,245,.20)';ctx.fillRect(gx,gy,gw,3); // rebord brillant
+    } else if(satin){
+      const sh=ctx.createLinearGradient(gx,gy,gx+gw,gy+gh);
+      sh.addColorStop(0,'rgba(255,250,240,.10)');sh.addColorStop(.5,'rgba(255,250,240,.02)');sh.addColorStop(1,'rgba(0,0,0,.05)');
+      ctx.fillStyle=sh;ctx.fillRect(gx,gy,gw,gh);
+    }
+    ctx.restore();
+
+    // coulant : gouttes sous le bord bas
+    if(state.runny){ctx.save();const r=rng(state.seed^55);const dark=hslToRgb(hsl.h,Math.min(1,hsl.s+0.18),Math.max(0.05,hsl.l-0.16));for(let i=0;i<5;i++){const px=gx+18+r()*(gw-36);const drop=6+r()*18;ctx.fillStyle='rgba('+[dark.r|0,dark.g|0,dark.b|0].join(',')+',.85)';ctx.beginPath();ctx.ellipse(px,tile.y+tile.h-2,3+r()*2,drop,0,0,7);ctx.fill();}ctx.restore();}
+
+    // trou de suspension
+    ctx.save();ctx.fillStyle='#15100D';ctx.beginPath();ctx.arc(tile.x+tile.w/2,tile.y+34,13,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(tile.x+tile.w/2,tile.y+34,13,0,7);ctx.stroke();ctx.restore();
+
+    // liseré du carreau
+    ctx.save();tilePath();ctx.lineWidth=1.4;ctx.strokeStyle='rgba(255,240,225,.07)';ctx.stroke();ctx.restore();
+
+    updateReadout();
+  }
+
+  function updateReadout(){
+    const rgb=hexToRgb(state.color);const lab=rgbToLab(rgb.r,rgb.g,rgb.b);
+    const fx=['speckle','variegation','crystalline','runny','breaking'].filter(k=>state[k]);
+    const fxNames={speckle:'moucheté',variegation:'variégation',crystalline:'cristallisation',runny:'coulant',breaking:'cassure'};
+    const surfNames={glossy:'brillant',satin:'satiné',matte:'mat'};
+    document.getElementById('readout').innerHTML=
+      `<div class="line"><span>couleur</span><b>${state.color} · Lab ${lab.L}/${lab.a}/${lab.bb}</b></div>`+
+      `<div class="line"><span>surface</span><b>${surfNames[state.surface]}</b></div>`+
+      `<div class="line"><span>opacité</span><b>${Math.round(state.opacity*100)}%</b></div>`+
+      `<div class="line"><span>cuisson</span><b>cône ${state.cone} · ${state.atm==='reduction'?'réduction':'oxydation'}</b></div>`+
+      `<div class="line"><span>effets</span><b>${fx.length?fx.map(k=>fxNames[k]).join(', '):'—'}</b></div>`;
+    document.getElementById('stamp').textContent=`cône ${state.cone} · ${state.atm==='reduction'?'réduction':'oxydation'}`;
+    document.getElementById('hexval').textContent=state.color.toUpperCase();
+    document.getElementById('opval').textContent=Math.round(state.opacity*100)+'%';
+  }
+
+  // ---------- présélections (types réels) ----------
+  const presets={
+    celadon:{color:'#7C9B86',surface:'glossy',opacity:0.66,speckle:false,variegation:false,crystalline:false,runny:false,breaking:true,cone:'10',atm:'reduction'},
+    tenmoku:{color:'#3A241A',surface:'glossy',opacity:0.96,speckle:false,variegation:true,crystalline:false,runny:true,breaking:true,cone:'10',atm:'reduction'},
+    turquoise:{color:'#2FB6B0',surface:'glossy',opacity:0.9,speckle:false,variegation:true,crystalline:false,runny:false,breaking:false,cone:'6',atm:'oxidation'},
+    rutile:{color:'#5B7FA6',surface:'satin',opacity:0.85,speckle:false,variegation:true,crystalline:false,runny:false,breaking:true,cone:'6',atm:'oxidation'},
+    oatmeal:{color:'#CDBFA3',surface:'matte',opacity:0.95,speckle:true,variegation:true,crystalline:false,runny:false,breaking:false,cone:'6',atm:'oxidation'}
+  };
+
+  // ---------- UI sync ----------
+  function syncUI(){
+    document.getElementById('color').value=state.color;
+    document.querySelectorAll('#surface button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===state.surface));
+    document.getElementById('opacity').value=Math.round(state.opacity*100);
+    document.querySelectorAll('#effects .chip').forEach(c=>c.setAttribute('aria-pressed',!!state[c.dataset.fx]));
+    document.querySelectorAll('#atm button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.atm===state.atm));
+    document.getElementById('cone').value=state.cone;
+  }
+
+  // swatches
+  const swWrap=document.getElementById('swatches');
+  palette.forEach(c=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.title=c;
+    b.onclick=()=>{state.color=c;syncUI();render();};swWrap.appendChild(b);});
+
+  document.getElementById('color').addEventListener('input',e=>{state.color=e.target.value;updateReadout();render();});
+  document.getElementById('opacity').addEventListener('input',e=>{state.opacity=e.target.value/100;updateReadout();render();});
+  document.querySelectorAll('#surface button').forEach(b=>b.onclick=()=>{state.surface=b.dataset.s;syncUI();render();});
+  document.querySelectorAll('#atm button').forEach(b=>b.onclick=()=>{state.atm=b.dataset.atm;syncUI();render();});
+  document.getElementById('cone').addEventListener('change',e=>{state.cone=e.target.value;render();});
+  document.querySelectorAll('#effects .chip').forEach(c=>c.onclick=()=>{state[c.dataset.fx]=!state[c.dataset.fx];c.setAttribute('aria-pressed',state[c.dataset.fx]);render();});
+  document.getElementById('reroll').onclick=()=>{state.seed=(Math.random()*100000)|0;render();};
+  document.querySelectorAll('#presets .preset').forEach(p=>p.onclick=()=>{Object.assign(state,presets[p.dataset.p]);state.seed=(Math.random()*100000)|0;syncUI();render();});
+
+  syncUI();render();
+})();
+</script>
+</body>
+</html>

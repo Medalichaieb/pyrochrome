@@ -1,0 +1,77 @@
+[project]
+name = "pyrochrome"
+version = "0.1.0"
+description = "Predict the post-firing render of a ceramic glaze from its chemistry — open source."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "CC-BY-NC-SA-4.0" }
+authors = [{ name = "Pyrochrome contributors" }]
+
+# Runtime dependencies. Pinned with a lower bound; exact versions are locked in uv.lock.
+dependencies = [
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<3",
+    "scikit-learn>=1.5,<2",
+    "pyyaml>=6.0,<7",
+    "joblib>=1.4,<2",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+    "pydantic>=2.9,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7",
+    "black>=24.10",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pandas-stubs",
+    "types-PyYAML",
+]
+
+[project.urls]
+Repository = "https://github.com/<personal-account>/pyrochrome"
+"Glazy data" = "https://github.com/derekphilipau/glazy-data"
+"GlazyBench" = "https://arxiv.org/abs/2605.06641"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyrochrome"]
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, bugbear, docstrings.
+select = ["E", "F", "I", "N", "UP", "B", "D"]
+ignore = ["D203", "D213"]  # conflicting docstring rules; keep one of each pair
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]  # docstrings not required in tests
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+files = ["src", "tests"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=pyrochrome --cov-report=term-missing"

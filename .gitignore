@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data — never commit the raw Glazy dumps (large, licensed). Re-download via `make data`.
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Trained model artifacts (regenerate via `make train`/`make export`)
+*.joblib
+*.pkl
+models_out/
+
+# Node / web build
+node_modules/
+web/dist/
+*.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

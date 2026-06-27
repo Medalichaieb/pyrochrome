@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pyrochrome — prédire l'émail avant la cuisson</title>
+    <meta
+      name="description"
+      content="Saisis la composition d'un émail et les conditions de cuisson, obtiens une prédiction du rendu avec un indice de confiance et les recettes réelles les plus proches."
+    />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="bar">
+        <div class="brand">
+          <p class="eyebrow">Pyrochrome</p>
+          <h1>Prédire l'émail avant la cuisson</h1>
+          <p>
+            Règle la composition en oxydes (formule unitaire UMF), le cône et
+            l'atmosphère. Un modèle entraîné sur des milliers de recettes Glazy
+            prédit la couleur, la surface et la transparence — avec un indice de
+            confiance et les recettes réelles les plus proches.
+          </p>
+        </div>
+      </header>
+
+      <main id="app">
+        <!-- Mounted by src/main.ts -->
+      </main>
+
+      <footer class="foot">
+        <p>
+          Données :
+          <a href="https://github.com/derekphilipau/glazy-data">Glazy</a>
+          (CC BY-NC-SA 4.0) · Référence :
+          <a href="https://arxiv.org/abs/2605.06641">GlazyBench</a> · Projet
+          open source non commercial.
+        </p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
