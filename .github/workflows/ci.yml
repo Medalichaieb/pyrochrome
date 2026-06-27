@@ -36,6 +36,9 @@ jobs:
   web:
     name: Lint & build (web)
     runs-on: ubuntu-latest
+    # The web frontend is still a scaffold; this job activates automatically
+    # once a lockfile is committed (i.e. after the first `npm install`).
+    if: ${{ hashFiles('web/package-lock.json') != '' }}
     defaults:
       run:
         working-directory: web
