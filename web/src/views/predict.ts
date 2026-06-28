@@ -17,7 +17,7 @@ import {
   surfaceToRenderer,
   transparencyToOpacity,
 } from "../chemistry";
-import { labToRgb, rgbToHex } from "../color";
+import { hexToRgb, hslToRgb, labToRgb, rgbToHex, rgbToHsl } from "../color";
 import { el } from "../dom";
 import { renderRadar, type RadarSeries } from "../radar";
 import { renderTile, type TileAttributes } from "../renderer";
@@ -71,13 +71,46 @@ function radarValues(lookup: (oxide: string) => number): number[] {
   return RADAR_AXES.map((axis) => axisValue(axis, lookup));
 }
 
-/** A legend entry: fired-colour dot + recipe name. */
-function neighbourLegendItem(n: Neighbour): HTMLElement {
+/** Human-readable summary of the (illustrative) texture effects in play. */
+function describeEffects(fx: ReturnType<typeof deriveEffects>): string {
+  const labels: [keyof typeof fx, string][] = [
+    ["breaking", "breaks on edges"],
+    ["variegation", "variegation"],
+    ["speckle", "iron speckle"],
+    ["crystalline", "crystals"],
+    ["runny", "runs & pools"],
+  ];
+  const active = labels.filter(([key]) => fx[key]).map(([, label]) => label);
+  return active.length ? active.join(" · ") : "smooth, even";
+}
+
+/** Darken a too-light fired colour so its radar outline stays visible on paper. */
+function readableStroke(hex: string): string {
+  const { h, s, l } = rgbToHsl(hexToRgb(hex));
+  return l > 0.7 ? rgbToHex(hslToRgb(h, Math.min(1, s + 0.1), 0.5)) : hex;
+}
+
+/** A clickable legend entry: fired-colour dot + name, toggles its radar outline. */
+function neighbourLegendButton(
+  n: Neighbour,
+  index: number,
+  selected: boolean,
+  onToggle: (index: number) => void,
+): HTMLElement {
   return el(
     "li",
     { class: "legend-item" },
-    el("span", { class: "legend-dot", style: `background:${neighbourHex(n)}` }),
-    el("span", { class: "legend-name" }, n.name ?? "Untitled"),
+    el(
+      "button",
+      {
+        type: "button",
+        class: "legend-btn",
+        "aria-pressed": String(selected),
+        onclick: () => onToggle(index),
+      },
+      el("span", { class: "legend-dot", style: `background:${neighbourHex(n)}` }),
+      el("span", { class: "legend-name" }, n.name ?? "Untitled"),
+    ),
   );
 }
 
@@ -138,47 +171,74 @@ export function renderPredict(host: HTMLElement): void {
           colour?.lab ? colour.lab.map((v) => v.toFixed(0)).join(" / ") : "—",
         ),
       ),
+      el(
+        "div",
+        { class: "readout-row" },
+        el("span", { class: "readout-key" }, "Texture *"),
+        el("span", { class: "readout-val" }, describeEffects(effects)),
+      ),
     );
 
+    // Texture is illustrative (rule-of-thumb from chemistry), so the redraw can
+    // now re-roll its random placement.
+    rerollBtn.disabled = false;
+
     const neighbours = r.neighbours.slice(0, 6);
-    const series: RadarSeries[] = [
-      ...neighbours.map((n) => ({
-        values: radarValues((oxide) => Number(n[`${oxide}_umf`] ?? 0)),
-        stroke: INK_FAINT,
-        width: 1,
-        z: 0,
-      })),
-      {
-        values: radarValues((oxide) => state.chemistry[oxide] ?? 0),
-        stroke: CLAY,
-        fill: CLAY_FILL,
-        width: 2,
-        z: 1,
-      },
-    ];
+    const labels = RADAR_AXES.map((a) => a.label);
+    const inputSeries: RadarSeries = {
+      values: radarValues((oxide) => state.chemistry[oxide] ?? 0),
+      stroke: CLAY,
+      fill: CLAY_FILL,
+      width: 2,
+      z: 2,
+    };
+    const neighbourValues = neighbours.map((n) =>
+      radarValues((oxide) => Number(n[`${oxide}_umf`] ?? 0)),
+    );
+
+    // null = show the whole neighbourhood faintly; an index = isolate that one.
+    let selected: number | null = null;
+    const radarHost = el("div", { class: "radar-wrap" });
+    const legend = el("ul", { class: "legend" });
+    const hint = el("p", { class: "legend-hint" });
+
+    const draw = (): void => {
+      const series: RadarSeries[] = [];
+      if (selected === null) {
+        neighbours.forEach((_, i) =>
+          series.push({ values: neighbourValues[i], stroke: INK_FAINT, width: 1, z: 0 }),
+        );
+      } else {
+        const stroke = readableStroke(neighbourHex(neighbours[selected]));
+        series.push({ values: neighbourValues[selected], stroke, width: 2.5, z: 1 });
+      }
+      series.push(inputSeries);
+      radarHost.replaceChildren(renderRadar(labels, series));
+
+      legend.replaceChildren(
+        ...neighbours.map((n, i) =>
+          neighbourLegendButton(n, i, selected === i, (index) => {
+            selected = selected === index ? null : index;
+            draw();
+          }),
+        ),
+      );
+      hint.textContent =
+        selected === null
+          ? "Select a recipe to isolate it on the chart."
+          : `Showing ${neighbours[selected].name ?? "selected recipe"} — select again to show all.`;
+    };
+    draw();
 
     neighboursWrap.replaceChildren(
       el("p", { class: "eyebrow" }, "Nearest real recipes"),
-      el(
-        "div",
-        { class: "radar-wrap" },
-        renderRadar(
-          RADAR_AXES.map((a) => a.label),
-          series,
-        ),
-      ),
+      radarHost,
       el(
         "div",
         { class: "radar-legend-wrap" },
-        el(
-          "p",
-          { class: "legend-key" },
-          el("span", { class: "legend-swatch you" }),
-          "Your recipe",
-          el("span", { class: "legend-swatch real" }),
-          "Real recipes",
-        ),
-        el("ul", { class: "legend" }, ...neighbours.map(neighbourLegendItem)),
+        el("p", { class: "legend-key" }, el("span", { class: "legend-swatch you" }), "Your recipe"),
+        legend,
+        hint,
       ),
       el(
         "p",
@@ -304,19 +364,17 @@ export function renderPredict(host: HTMLElement): void {
     { type: "button", class: "btn-primary", onclick: () => void runPredict() },
     "Predict the render",
   );
-  const rerollBtn = el(
-    "button",
-    {
-      type: "button",
-      class: "btn-ghost",
-      title: "Re-roll the texture (same prediction)",
-      onclick: () => {
-        state.seed = (Math.random() * 100000) | 0;
-        if (state.lastAttributes) paint({ ...state.lastAttributes, seed: state.seed });
-      },
+  const rerollBtn = el("button", {
+    type: "button",
+    class: "btn-ghost",
+    disabled: true,
+    title: "Redraw the stylised texture with a new random seed — same prediction",
+    onclick: () => {
+      state.seed = (Math.random() * 100000) | 0;
+      if (state.lastAttributes) paint({ ...state.lastAttributes, seed: state.seed });
     },
-    "↻ texture",
-  );
+  }) as HTMLButtonElement;
+  rerollBtn.append("↻ Redraw");
 
   const form = el(
     "section",
@@ -353,7 +411,27 @@ export function renderPredict(host: HTMLElement): void {
     el("div", { class: "actions" }, predictBtn, rerollBtn),
   );
 
-  const result = el("section", { class: "result-col" }, stage, status, readout, neighboursWrap);
+  const tileNote = el(
+    "p",
+    { class: "tile-note" },
+    "A stylised illustration of the predicted colour, surface and transparency — not a photo. ",
+    el("strong", {}, "* Texture"),
+    " (variegation, breaks, speckle…) is indicative: inferred from the recipe chemistry by simple rules, ",
+    el("strong", {}, "not predicted by the model"),
+    ". ",
+    el("strong", {}, "↻ Redraw"),
+    " re-rolls only the random placement of that texture — the prediction stays the same.",
+  );
+
+  const result = el(
+    "section",
+    { class: "result-col" },
+    stage,
+    status,
+    readout,
+    tileNote,
+    neighboursWrap,
+  );
 
   host.append(
     el(

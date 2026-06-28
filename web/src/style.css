@@ -376,9 +376,25 @@ a:hover {
   padding: 10px 14px;
   cursor: pointer;
 }
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled) {
   color: var(--ink);
   border-color: var(--clay);
+}
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tile-note {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+  max-width: var(--prose);
+}
+.tile-note strong {
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 /* ---------- result ---------- */
@@ -486,7 +502,7 @@ canvas.tile {
 }
 .radar {
   width: 100%;
-  max-width: 360px;
+  max-width: 384px;
   height: auto;
 }
 .radar-ring {
@@ -542,13 +558,34 @@ canvas.tile {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px 16px;
+  gap: 6px 10px;
 }
 .legend-item {
+  min-width: 0;
+}
+.legend-btn {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.legend-btn:hover {
+  border-color: var(--rule);
+  background: var(--paper-2);
+}
+.legend-btn[aria-pressed="true"] {
+  border-color: var(--clay);
+  background: var(--clay-soft);
 }
 .legend-dot {
   width: 11px;
@@ -563,6 +600,13 @@ canvas.tile {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.legend-hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 2px 0 0;
 }
 .fine {
   font-size: 12.5px;
