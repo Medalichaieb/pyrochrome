@@ -70,6 +70,49 @@ the best surface macro-F1, matches LightGBM/XGBoost **without** a native depende
 
 ---
 
+## 2026-06-28 — Lever #1: atmosphere feature (multi-hot from YAML dump)
+- Source: `glazy_20260531.yaml.gz` → `id` + multi-hot `atm_{oxidation,reduction,neutral,salt_soda,wood,raku,luster}` + `atm_known`, joined by `id` (cached in `data/processed/atmospheres.csv`).
+- Coverage: 30,026 recipes carry ≥1 atmosphere; **80.3%** of cleaned recipes get a known atmosphere.
+- Protocol: 3-fold stratified CV, selected model (HistGB + early stopping), identical for both arms. Features 42 → 50.
+
+| Target  | metric | without atm | with atm | gain |
+|---------|--------|-------------|----------|------|
+| Surface | acc    | 0.758       | 0.758    | +0.001 |
+| Surface | top-2  | 0.907       | 0.907    | −0.001 |
+| Colour  | acc    | 0.647       | 0.653    | **+0.006** |
+| Colour  | macro-F1 | 0.485     | 0.491    | +0.006 |
+| Colour  | top-2  | 0.781       | 0.784    | +0.003 |
+
+**Finding: the aggregate gain is negligible — this contradicts the brief's
+hypothesis that atmosphere is the single biggest lever.** But the physical signal
+is real and strong where it should be. On copper recipes (`CuO_umf > 0.01`, known
+single atmosphere, n=981):
+
+| Copper, oxidation-only (n=558) | Copper, reduction-only (n=158) |
+|--------------------------------|--------------------------------|
+| Turquoise 22%, Vert 19%, Bleu 9% (greens/blues; no red) | **Rouge 35%** (#1), Violet 14% (copper-red / sang-de-bœuf) |
+
+Interpretation: atmosphere decides copper colour exactly as expected, but
+copper-with-known-atmosphere is only ~13% of the colour set, so the aggregate
+metric barely moves. Two compounding causes: (1) the **label-noise ceiling**
+(photo RGB) is the binding constraint — lever #2; (2) the `Atmospheres` tag is a
+*set* the recipe is associated with, not the single atmosphere under which the
+recorded photo was fired, so it is only weakly informative per-sample.
+
+**Decision:** keep the atmosphere features — small positive on colour, strong on
+the redox-sensitive subset the product cares about, cheap, and they don't hurt
+surface. But **re-prioritise lever #2 (clean colour labels / Lab space)** as the
+real ceiling.
+
+### 2026-06-28 — Selected model held-out (with atmosphere + early stopping, `make train`)
+
+| Target        | n     | accuracy | macro-F1 | top-2 |
+|---------------|-------|----------|----------|-------|
+| Surface       | 8,397 | 0.769    | 0.650    | 0.913 |
+| Colour family | 5,511 | 0.657    | 0.495    | 0.799 |
+
+---
+
 ## Template
 
 ```

@@ -6,7 +6,7 @@ GLAZY_REPO := https://github.com/derekphilipau/glazy-data.git
 DATA_RAW   := data/raw
 DATA_PROC  := data/processed
 
-.PHONY: help setup data train baseline compare eval export lint format typecheck test check clean
+.PHONY: help setup data atmosphere train baseline compare eval export lint format typecheck test check clean
 
 help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -18,6 +18,9 @@ setup: ## Create the virtual env and install all deps (incl. dev).
 data: ## Download the Glazy dataset (CSV + YAML dump) into data/raw/.
 	@test -d $(DATA_RAW)/glazy-data || git clone --depth 1 $(GLAZY_REPO) $(DATA_RAW)/glazy-data
 	uv run python -m pyrochrome.pipeline.download
+
+atmosphere: ## Parse the YAML dump and cache the atmosphere table (lever #1).
+	uv run python -m pyrochrome.pipeline.atmosphere
 
 train: ## Train and persist the selected model (HistGradientBoosting) per target.
 	uv run python -m pyrochrome.models.train

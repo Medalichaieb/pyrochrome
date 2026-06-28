@@ -22,6 +22,12 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from pyrochrome.pipeline.atmosphere import (
+    ATMOSPHERE_COLUMNS,
+    ATMOSPHERE_KNOWN_COLUMN,
+    join_atmosphere,
+    load_atmospheres,
+)
 from pyrochrome.pipeline.download import find_glazes_csv
 from pyrochrome.pipeline.features import build_features, clean_recipes
 from pyrochrome.pipeline.labels import color_family, surface_family
@@ -55,12 +61,17 @@ def _impute(features: pd.DataFrame) -> pd.DataFrame:
     return imputed
 
 
-def load_targets(csv_path: str | None = None) -> dict[str, TargetData]:
+def load_targets(
+    csv_path: str | None = None, *, with_atmosphere: bool = True
+) -> dict[str, TargetData]:
     """Load and prepare the (X, y) dataset for every target.
 
     Args:
         csv_path: Explicit path to the Glazy CSV, or ``None`` to auto-detect the
             latest one under ``data/raw/glazy-data/``.
+        with_atmosphere: If ``True`` (default), join the multi-hot atmosphere
+            features (lever #1) from the YAML dump. Set ``False`` to reproduce
+            the chemistry-only setup and measure the atmosphere gain.
 
     Returns:
         Mapping ``target name -> TargetData``.
@@ -68,6 +79,10 @@ def load_targets(csv_path: str | None = None) -> dict[str, TargetData]:
     path = csv_path or str(find_glazes_csv())
     df = clean_recipes(pd.read_csv(path, low_memory=False))
     feat_cols = build_features(df)
+
+    if with_atmosphere:
+        df = join_atmosphere(df, load_atmospheres())
+        feat_cols = [*feat_cols, *ATMOSPHERE_COLUMNS, ATMOSPHERE_KNOWN_COLUMN]
 
     targets: dict[str, TargetData] = {}
 

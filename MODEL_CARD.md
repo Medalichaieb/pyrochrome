@@ -59,23 +59,37 @@ Reference baseline (held-out 20%, `make baseline`):
 | Surface (Glossy/Matte/Satin) | 8,397 | 60 % | 78.0 % (F1 0.671) | 77.3 % | — |
 | Colour family (10 classes) | 5,511 | 45 % | 64.6 % | 64.6 % | 79.5 % |
 
-Selected model — `HistGradientBoostingClassifier` (held-out 20%, `make train`):
+Selected model — `HistGradientBoostingClassifier` + early stopping, **with the
+atmosphere feature** (held-out 20%, `make train`):
 
 | Target | n | accuracy | macro-F1 | top-2 |
 |---|---|---|---|---|
-| Surface (Glossy/Matte/Satin) | 8,397 | **76.7 %** | 0.665 | 90.8 % |
-| Colour family (10 classes) | 5,511 | 64.9 % | 0.489 | **79.8 %** |
+| Surface (Glossy/Matte/Satin) | 8,397 | **76.9 %** | 0.650 | 91.3 % |
+| Colour family (10 classes) | 5,511 | 65.7 % | 0.495 | **79.9 %** |
 
 Per-run, dated metrics live in [`results.md`](results.md) and detailed reports
 (confusion matrices, feature importances, calibration, error analysis) in
 [`reports/`](reports/). Regenerate with `make train && make eval`.
 
+### Lever #1 (atmosphere): measured, mostly a null result
+Adding multi-hot atmosphere features (from the YAML dump, 80% coverage) gives a
+**negligible aggregate gain** (colour acc +0.6%, top-2 +0.3%; surface ~0) —
+contrary to the brief's expectation that atmosphere was the biggest lever. The
+physical effect is nonetheless real: on copper recipes, reduction yields **Rouge
+35%** (copper-red) while oxidation yields turquoise/green — exactly as expected.
+The effect is just diluted because copper-with-known-atmosphere is ~13% of the
+colour set. The features are **kept** (they help the redox-sensitive cases the
+product cares about and don't hurt surface), but the binding ceiling is label
+noise, so **lever #2 is re-prioritised**. Full analysis in [`results.md`](results.md).
+
 ## Limitations & known biases
 
-- **Atmosphere** not yet in the baseline → copper green↔red and other
-  redox-sensitive colorants are undecidable (priority lever #1).
-- **Colour labels are noisy** (photos under non-standardised lighting) →
-  ceiling on colour accuracy (priority lever #2).
+- **Colour labels are noisy** (photos under non-standardised lighting) → this is
+  the binding ceiling on colour accuracy (**now the #1 lever**: clean labels /
+  predict in Lab space).
+- **Atmosphere tag is set-valued** — it lists the atmospheres a recipe is
+  associated with, not the single one under which its recorded photo was fired,
+  so it is only weakly informative per sample.
 - **Kiln variance** between real kilns is a fundamental source of variance.
 - Families with < 40 samples are dropped → no prediction for rare colours.
 

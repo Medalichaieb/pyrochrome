@@ -42,7 +42,8 @@ Validated representation:
 UMF oxides (precomputed by Glazy)
   + aggregates R2O_umf, RO_umf, SiO2_Al2O3_ratio_umf
   + cone (ordinal)
-  + atmosphere (categorical)   ← to be added
+  + atmosphere (multi-hot: atm_oxidation/reduction/neutral/salt_soda/wood/raku/
+    luster + atm_known), parsed from the YAML dump and joined by id (80% coverage)
 ```
 
 All-zero UMF columns are dropped. Missing values imputed with the column median.

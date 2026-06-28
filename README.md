@@ -28,9 +28,14 @@ The link is learnable. A 5-fold CV comparison (RandomForest, ExtraTrees,
 HistGradientBoosting, LightGBM, XGBoost, MLP, LogReg) selected
 **`HistGradientBoostingClassifier`** as the server model — see
 [MODEL_CARD.md](MODEL_CARD.md) and [results.md](results.md) for the full tables
-and rationale. The two priority levers to push performance further are
-(1) adding the **atmosphere** feature and (2) **cleaning the colour labels**
-(see [the brief](CLAUDE_CODE_BRIEF.md)).
+and rationale.
+
+**Lever #1 (atmosphere) — measured.** Multi-hot atmosphere features (from the
+YAML dump) were added and evaluated. The aggregate gain is negligible (contrary
+to the brief's expectation), though the effect is real where it matters (copper:
+reduction → red, oxidation → green). The binding ceiling is **colour-label
+noise**, so the now-#1 lever is **cleaning the colour labels / predicting in Lab
+space** (see [results.md](results.md) for the full analysis).
 
 ## Architecture
 

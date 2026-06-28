@@ -29,12 +29,16 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 SELECTED_MODEL_NAME = "hist_gb"
 
 # Hyperparameters chosen during the comparison run. Modest depth + L2 + a low
-# learning rate with many iterations: robust on ~5–8k rows without overfitting.
+# learning rate, with early stopping so training halts once the held-out loss
+# plateaus (far below max_iter) — faster and avoids overfitting 600 iterations.
 HIST_GB_PARAMS = {
     "max_iter": 600,
     "learning_rate": 0.06,
     "max_leaf_nodes": 63,
     "l2_regularization": 1.0,
+    "early_stopping": True,
+    "validation_fraction": 0.1,
+    "n_iter_no_change": 15,
     "random_state": 42,
 }
 
