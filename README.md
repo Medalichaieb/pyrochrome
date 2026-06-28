@@ -97,11 +97,20 @@ returns the predicted `surface`, `transparency` and `colour` (family + top-2 +
 confidence + Lab), plus the nearest real recipes — never a single over-confident
 colour.
 
-The web frontend lives in [`web/`](web/) (needs Node ≥ 20):
+### Web frontend
+
+A sober, editorial single-page app (Vite + TypeScript, no framework) with two
+pages: **Predict** (chemistry → rendered tile + predictions + nearest recipes)
+and **Docs** (how the model and data work). It calls the API above; point it at
+a non-default API with `VITE_API_URL`.
 
 ```bash
-cd web && npm install && npm run dev
+cd web
+npm install
+VITE_API_URL=http://127.0.0.1:8000 npm run dev   # http://localhost:5173
 ```
+
+Needs Node ≥ 20. Build for production with `npm run build` (outputs `web/dist/`).
 
 ## Repository structure
 
@@ -111,7 +120,7 @@ pyrochrome/
 │   ├── pipeline/      # download, cone mapping, atmosphere (YAML), feature engineering
 │   ├── models/        # baseline training, evaluation, export
 │   └── api/           # FastAPI prediction service
-├── web/               # Vite + TypeScript SPA (sober, French UI)
+├── web/               # Vite + TypeScript SPA (sober editorial UI, English)
 ├── prototypes/        # original reference artifacts (baseline + renderer + predictor demo)
 ├── tests/             # pytest
 ├── reports/           # versioned evaluation reports + figures

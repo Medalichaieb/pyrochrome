@@ -23,9 +23,18 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from pyrochrome.models.inference import Predictor
+
+# Local dev origins for the Vite frontend. Override/extend for deployment.
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -47,6 +56,13 @@ app = FastAPI(
     summary="Predict the post-firing render of a ceramic glaze.",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 

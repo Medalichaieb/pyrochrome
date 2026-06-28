@@ -33,6 +33,21 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
-  # NOTE: the web (Vite + TS) job is intentionally omitted while the frontend is
-  # just a scaffold (no package-lock.json yet). Re-add it once `npm install` has
-  # produced a lockfile — see the commented template in the PR / git history.
+  web:
+    name: Lint, typecheck & build (web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
