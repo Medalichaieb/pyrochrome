@@ -144,6 +144,25 @@ chemistry+predicted-colour space.
 
 ---
 
+## 2026-06-28 — Evaluation report (`make eval`)
+Full report + figures in [`reports/REPORT.md`](reports/REPORT.md) (confusion
+matrices, per-class P/R/F1, calibration, permutation importances, Lab diagnostics).
+
+| Target        | accuracy | macro-F1 | top-2 | ECE (top label) |
+|---------------|----------|----------|-------|-----------------|
+| Surface       | 0.774    | 0.660    | 0.919 | 0.044           |
+| Transparency  | 0.658    | 0.610    | 0.851 | 0.047           |
+| Colour family | 0.663    | 0.519    | 0.791 | 0.064           |
+| Colour (Lab)  | ΔE 32.6 mean / 23 median | — | — | R² 0.42 |
+
+Notes: **probabilities are well calibrated** (ECE ≤ 0.06 — the displayed confidence
+% is trustworthy). Confusion matrices confirm the expected failure modes: a bias
+toward "Blanc" on colour (photo-background label noise) and Satin↔Glossy/Matte
+overlap on surface. Permutation importance: silica/alumina/flux balance drive
+surface; colorant oxides + cone drive colour.
+
+---
+
 ## Template
 
 ```

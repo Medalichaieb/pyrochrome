@@ -68,9 +68,11 @@ atmosphere feature** (held-out 20%, `make train`):
 | Surface (Glossy/Matte/Satin) | 8,397 | **76.9 %** | 0.650 | 91.3 % |
 | Colour family (10 classes) | 5,511 | 65.7 % | 0.495 | **79.9 %** |
 
-Per-run, dated metrics live in [`results.md`](results.md) and detailed reports
-(confusion matrices, feature importances, calibration, error analysis) in
-[`reports/`](reports/). Regenerate with `make train && make eval`.
+Per-run, dated metrics live in [`results.md`](results.md). The full evaluation
+report — confusion matrices, per-class precision/recall/F1, **probability
+calibration** (ECE ≤ 0.06, so the confidence % is trustworthy), permutation
+feature importances and Lab diagnostics — is in
+[`reports/REPORT.md`](reports/REPORT.md). Regenerate with `make train && make eval`.
 
 ### Lever #1 (atmosphere): measured, mostly a null result
 Adding multi-hot atmosphere features (from the YAML dump, 80% coverage) gives a
