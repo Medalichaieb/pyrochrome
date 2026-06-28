@@ -59,7 +59,8 @@ ignore = ["D203", "D213"]  # conflicting docstring rules; keep one of each pair
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D"]  # docstrings not required in tests
+# Docstrings not required in tests; allow capital X for feature matrices (sklearn idiom).
+"tests/*" = ["D", "N806"]
 
 [tool.black]
 line-length = 100

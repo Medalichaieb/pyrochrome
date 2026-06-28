@@ -1,0 +1,108 @@
+"""k-NN nearest real recipes (lever #2): show real tiles, not just a prediction.
+
+Because predicted colour is bounded by photo-label noise, the honest product move
+is to surface the **nearest real recipes** (with their actual photos/RGB) next to
+any prediction. This module builds a k-NN index over standardised chemistry
+features and, for a query composition, returns the closest real Glazy recipes.
+
+We search in **chemistry space** (UMF + cone + atmosphere) so neighbours are
+recipes a ceramicist could actually mix and fire — "recipes like yours", whose
+real fired results bracket the likely outcome.
+
+Run: ``uv run python -m pyrochrome.models.neighbors`` (``make neighbors``) to
+build + persist the index and print a demo query.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
+
+from pyrochrome.models.datasets import RegressionData, load_colour_regression
+from pyrochrome.pipeline.color import srgb_to_lab
+
+OUTPUT_DIR = Path("models_out")
+DEFAULT_K = 8
+
+
+@dataclass
+class RecipeIndex:
+    """A fitted nearest-recipe index plus the reference recipes it returns.
+
+    Attributes:
+        scaler: Fitted standardiser for the chemistry features.
+        nn: Fitted NearestNeighbors model.
+        feature_names: Feature columns the index expects (in order).
+        reference: Recipes (id, name, rgb_*, lab_*) aligned to the index rows.
+    """
+
+    scaler: StandardScaler
+    nn: NearestNeighbors
+    feature_names: list[str]
+    reference: pd.DataFrame
+
+
+def build_index(data: RegressionData, n_neighbors: int = DEFAULT_K) -> RecipeIndex:
+    """Fit the k-NN index over standardised chemistry features.
+
+    Args:
+        data: The regression dataset (X + reference rows with id/name/rgb).
+        n_neighbors: Default neighbour count the index is fitted for.
+
+    Returns:
+        A fitted :class:`RecipeIndex`.
+    """
+    scaler = StandardScaler().fit(data.X.to_numpy())
+    scaled = scaler.transform(data.X.to_numpy())
+    nn = NearestNeighbors(n_neighbors=n_neighbors, metric="euclidean").fit(scaled)
+
+    reference = data.reference.copy()
+    lab = srgb_to_lab(reference[["rgb_r", "rgb_g", "rgb_b"]].to_numpy())
+    reference[["lab_l", "lab_a", "lab_b"]] = lab
+    return RecipeIndex(scaler=scaler, nn=nn, feature_names=data.feature_names, reference=reference)
+
+
+def query(index: RecipeIndex, x_row: np.ndarray, k: int = DEFAULT_K) -> pd.DataFrame:
+    """Return the ``k`` nearest real recipes to a query feature vector.
+
+    Args:
+        index: A fitted :class:`RecipeIndex`.
+        x_row: A 1-D feature vector in the index's ``feature_names`` order.
+        k: Number of neighbours to return.
+
+    Returns:
+        A dataframe of the nearest recipes (reference columns + ``distance``),
+        ordered nearest first.
+    """
+    scaled = index.scaler.transform(np.asarray(x_row, dtype=float).reshape(1, -1))
+    distances, indices = index.nn.kneighbors(scaled, n_neighbors=k)
+    out = index.reference.iloc[indices[0]].copy()
+    out["distance"] = distances[0]
+    result: pd.DataFrame = out.reset_index(drop=True)
+    return result
+
+
+def main() -> None:
+    """Entry point for ``make neighbors``: build, persist and demo the index."""
+    data = load_colour_regression()
+    index = build_index(data)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    path = OUTPUT_DIR / "neighbors.joblib"
+    joblib.dump(index, path)
+    print(f"Built nearest-recipe index over {len(data.Y)} recipes -> {path}")
+
+    # Demo: neighbours of the first recipe (should include itself at distance 0).
+    demo = query(index, data.X.to_numpy()[0], k=5)
+    cols = [c for c in ["name", "rgb_r", "rgb_g", "rgb_b", "distance"] if c in demo.columns]
+    print("\nDemo — 5 nearest recipes to row 0:")
+    print(demo[cols].to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()

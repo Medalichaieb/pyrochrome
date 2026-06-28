@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 from pyrochrome.pipeline.atmosphere import (
@@ -28,11 +29,13 @@ from pyrochrome.pipeline.atmosphere import (
     join_atmosphere,
     load_atmospheres,
 )
+from pyrochrome.pipeline.color import srgb_to_lab
 from pyrochrome.pipeline.download import find_glazes_csv
 from pyrochrome.pipeline.features import build_features, clean_recipes
 from pyrochrome.pipeline.labels import color_family, surface_family
 
 MIN_CLASS_COUNT = 40  # drop colour families with fewer samples than this
+RGB_COLUMNS = ["rgb_r", "rgb_g", "rgb_b"]
 
 
 @dataclass
@@ -54,6 +57,24 @@ class TargetData:
     feature_names: list[str]
 
 
+@dataclass
+class RegressionData:
+    """A model-ready dataset for the Lab colour-regression target.
+
+    Attributes:
+        X: Feature matrix, median-imputed, one row per recipe with valid RGB.
+        Y: Target matrix of shape ``(n, 3)`` = predicted CIELAB (L*, a*, b*).
+        feature_names: Ordered feature column names.
+        reference: Aligned frame with ``id``, ``name`` and ``rgb_*`` for display
+            and nearest-recipe lookups.
+    """
+
+    X: pd.DataFrame
+    Y: np.ndarray
+    feature_names: list[str]
+    reference: pd.DataFrame
+
+
 def _impute(features: pd.DataFrame) -> pd.DataFrame:
     """Coerce to numeric and fill missing values with each column's median."""
     numeric = features.apply(pd.to_numeric, errors="coerce")
@@ -61,10 +82,33 @@ def _impute(features: pd.DataFrame) -> pd.DataFrame:
     return imputed
 
 
+def _feature_frame(
+    csv_path: str | None, *, with_atmosphere: bool
+) -> tuple[pd.DataFrame, list[str]]:
+    """Load, clean, build features and (optionally) join atmosphere.
+
+    Shared by every loader so all experiments use identical preprocessing.
+
+    Args:
+        csv_path: Explicit Glazy CSV path, or ``None`` to auto-detect.
+        with_atmosphere: Whether to join the multi-hot atmosphere features.
+
+    Returns:
+        The recipes dataframe and the ordered feature column names.
+    """
+    path = csv_path or str(find_glazes_csv())
+    df = clean_recipes(pd.read_csv(path, low_memory=False))
+    feat_cols = build_features(df)
+    if with_atmosphere:
+        df = join_atmosphere(df, load_atmospheres())
+        feat_cols = [*feat_cols, *ATMOSPHERE_COLUMNS, ATMOSPHERE_KNOWN_COLUMN]
+    return df, feat_cols
+
+
 def load_targets(
     csv_path: str | None = None, *, with_atmosphere: bool = True
 ) -> dict[str, TargetData]:
-    """Load and prepare the (X, y) dataset for every target.
+    """Load and prepare the (X, y) dataset for every classification target.
 
     Args:
         csv_path: Explicit path to the Glazy CSV, or ``None`` to auto-detect the
@@ -76,13 +120,7 @@ def load_targets(
     Returns:
         Mapping ``target name -> TargetData``.
     """
-    path = csv_path or str(find_glazes_csv())
-    df = clean_recipes(pd.read_csv(path, low_memory=False))
-    feat_cols = build_features(df)
-
-    if with_atmosphere:
-        df = join_atmosphere(df, load_atmospheres())
-        feat_cols = [*feat_cols, *ATMOSPHERE_COLUMNS, ATMOSPHERE_KNOWN_COLUMN]
+    df, feat_cols = _feature_frame(csv_path, with_atmosphere=with_atmosphere)
 
     targets: dict[str, TargetData] = {}
 
@@ -111,3 +149,34 @@ def load_targets(
     )
 
     return targets
+
+
+def load_colour_regression(
+    csv_path: str | None = None, *, with_atmosphere: bool = True
+) -> RegressionData:
+    """Load the Lab colour-regression dataset (lever #2).
+
+    Uses every recipe with a valid RGB triple (no rare-class dropping, so more
+    data than the classification target) and converts RGB → CIELAB as the
+    regression target.
+
+    Args:
+        csv_path: Explicit Glazy CSV path, or ``None`` to auto-detect.
+        with_atmosphere: Whether to include the atmosphere features.
+
+    Returns:
+        A :class:`RegressionData` bundle (X, Lab Y, feature names, reference rows).
+    """
+    df, feat_cols = _feature_frame(csv_path, with_atmosphere=with_atmosphere)
+
+    rgb = df[RGB_COLUMNS].apply(pd.to_numeric, errors="coerce")
+    mask = rgb.notna().all(axis=1)
+    lab = srgb_to_lab(rgb[mask].to_numpy())
+
+    reference_cols = [c for c in ["id", "name", *RGB_COLUMNS] if c in df.columns]
+    return RegressionData(
+        X=_impute(df.loc[mask, feat_cols]),
+        Y=lab,
+        feature_names=feat_cols,
+        reference=df.loc[mask, reference_cols].reset_index(drop=True),
+    )

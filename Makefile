@@ -6,7 +6,7 @@ GLAZY_REPO := https://github.com/derekphilipau/glazy-data.git
 DATA_RAW   := data/raw
 DATA_PROC  := data/processed
 
-.PHONY: help setup data atmosphere train baseline compare eval export lint format typecheck test check clean
+.PHONY: help setup data atmosphere train baseline compare color neighbors eval export lint format typecheck test check clean
 
 help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -30,6 +30,12 @@ baseline: ## Reproduce the reference baseline (RF / GradBoost vs naïve).
 
 compare: ## Cross-validate candidate models per target (model selection).
 	uv run python -m pyrochrome.models.compare
+
+color: ## Compare Lab colour regressors (ΔE) and persist the best (lever #2).
+	uv run python -m pyrochrome.models.color_regression
+
+neighbors: ## Build and persist the k-NN nearest-real-recipe index (lever #2).
+	uv run python -m pyrochrome.models.neighbors
 
 eval: ## Evaluate trained models and regenerate report metrics.
 	uv run python -m pyrochrome.models.evaluate

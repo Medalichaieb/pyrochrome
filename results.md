@@ -113,6 +113,37 @@ real ceiling.
 
 ---
 
+## 2026-06-28 — Lever #2: Lab colour regression + nearest real recipes
+Move colour out of the noisy 10-family classification into **CIELAB regression**,
+reporting error as **ΔE** (CIE76), and add a **k-NN nearest-real-recipe** index so
+the product can show real fired tiles alongside any prediction.
+
+**Lab regression** (5-fold CV, n=5,542 recipes with valid RGB, 50 features):
+
+| model         | ΔE mean | ΔE median | MAE L | MAE a | MAE b | R²    |
+|---------------|---------|-----------|-------|-------|-------|-------|
+| **extra_trees** | **32.90** | 23.48   | 16.51 | 15.18 | 17.39 | **0.405** |
+| random_forest | 34.09   | 25.05     | 16.91 | 15.81 | 18.27 | 0.395 |
+| knn           | 40.70   | 32.48     | 20.74 | 18.56 | 21.29 | 0.201 |
+| mean (floor)  | 51.43   | 32.38     | 29.46 | 21.02 | 23.44 | −0.003 |
+
+ExtraTrees selected (`make color` → `models_out/colour_lab.joblib`). It cuts mean
+ΔE by **36%** vs the mean-prediction floor (51.4 → 32.9) and explains ~40% of Lab
+variance. **But the residual ΔE ≈ 33 is large** (ΔE > 5 is clearly visible to the
+eye): this quantifies the colour-label-noise ceiling directly — the model is about
+as good as the noisy photo labels allow. This is exactly why we surface real
+neighbours rather than a single confident colour.
+
+**Nearest real recipes** (`make neighbors` → `models_out/neighbors.joblib`):
+k-NN over standardised chemistry features (UMF + cone + atmosphere) across 5,542
+recipes with photos. A query returns the closest real, fireable recipes (id, name,
+RGB, Lab, distance). Note: chemically-close recipes can have very different colours
+(colorant/atmosphere/label noise), which is precisely the uncertainty the
+neighbours communicate. Refinement idea: weight colorant oxides, or search in a
+chemistry+predicted-colour space.
+
+---
+
 ## Template
 
 ```

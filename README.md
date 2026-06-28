@@ -33,9 +33,14 @@ and rationale.
 **Lever #1 (atmosphere) — measured.** Multi-hot atmosphere features (from the
 YAML dump) were added and evaluated. The aggregate gain is negligible (contrary
 to the brief's expectation), though the effect is real where it matters (copper:
-reduction → red, oxidation → green). The binding ceiling is **colour-label
-noise**, so the now-#1 lever is **cleaning the colour labels / predicting in Lab
-space** (see [results.md](results.md) for the full analysis).
+reduction → red, oxidation → green). The binding ceiling is **colour-label noise**.
+
+**Lever #2 (colour) — done.** Colour is also modelled as **CIELAB regression**
+(`make color`), reporting error as **ΔE** (best ΔE ≈ 33, R² ≈ 0.40 — a 36% cut
+vs the floor, with the large residual quantifying the label-noise ceiling). A
+**k-NN nearest-real-recipe index** (`make neighbors`) surfaces real fired tiles
+alongside any prediction — the honest way to handle that noise. See
+[results.md](results.md) for the full analysis.
 
 ## Architecture
 

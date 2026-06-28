@@ -20,11 +20,12 @@ for provenance, cleaning, feature engineering and splits.
 
 | Role | Model | Where |
 |---|---|---|
-| **Selected server model** | `HistGradientBoostingClassifier` | `pyrochrome.models.selected` → `pyrochrome.models.train` |
+| **Selected server model** (surface / colour family) | `HistGradientBoostingClassifier` | `pyrochrome.models.selected` → `pyrochrome.models.train` |
+| **Colour (Lab regression)** | `ExtraTreesRegressor` (multi-output L*a*b*) | `pyrochrome.models.color_regression` |
+| **Nearest real recipes** | k-NN over standardised chemistry features | `pyrochrome.models.neighbors` |
 | Reference baseline | `RandomForestClassifier` + `HistGradientBoostingClassifier` vs naïve | `pyrochrome.models.baseline` |
 | Model-selection harness | RF / ExtraTrees / HistGB / MLP / LogReg (CV) | `pyrochrome.models.compare` |
 | In-browser predictor | compact MLP exported to JSON | `pyrochrome.models.export` → `web/` (TODO) |
-| Nearest real recipes | k-NN in chemistry / colour space | TODO |
 
 Model docs:
 [`HistGradientBoostingClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html),
@@ -81,6 +82,16 @@ The effect is just diluted because copper-with-known-atmosphere is ~13% of the
 colour set. The features are **kept** (they help the redox-sensitive cases the
 product cares about and don't hurt surface), but the binding ceiling is label
 noise, so **lever #2 is re-prioritised**. Full analysis in [`results.md`](results.md).
+
+### Lever #2 (colour labels): Lab regression + nearest real recipes
+Colour is now also modelled as **CIELAB regression** (`ExtraTreesRegressor`),
+reporting error as **ΔE**. Best CV ΔE ≈ **32.9** (mean), R² ≈ **0.40** — a 36%
+cut vs the mean-prediction floor (ΔE 51.4), but a residual ΔE ≈ 33 that directly
+quantifies the **photo-label-noise ceiling**. Because a single predicted colour
+is therefore unreliable, a **k-NN nearest-real-recipe index** (over chemistry
+features) surfaces real fired tiles (id, name, RGB, Lab) alongside any
+prediction — the honest way to communicate the uncertainty. Both regenerate via
+`make color` / `make neighbors`. Full tables in [`results.md`](results.md).
 
 ## Limitations & known biases
 
