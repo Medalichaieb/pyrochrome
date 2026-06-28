@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 from pyrochrome.models.datasets import RegressionData
-from pyrochrome.models.neighbors import build_index, query
+from pyrochrome.models.neighbors import build_index, load_index, query, save_index
 
 
 def _toy_data() -> RegressionData:
@@ -37,3 +39,16 @@ def test_query_returns_sorted_neighbors_with_self_first() -> None:
     assert list(result["distance"]) == sorted(result["distance"])
     # The far outlier should not be among the 3 nearest of row 0.
     assert "far" not in set(result["name"])
+
+
+def test_save_load_index_roundtrip(tmp_path: Path) -> None:
+    data = _toy_data()
+    index = build_index(data, n_neighbors=3)
+    path = tmp_path / "neighbors.joblib"
+    save_index(index, path)
+    reloaded = load_index(path)
+    assert reloaded.feature_names == index.feature_names
+    # Reloaded index still queries identically.
+    before = query(index, data.X.to_numpy()[0], k=2)
+    after = query(reloaded, data.X.to_numpy()[0], k=2)
+    assert list(before["name"]) == list(after["name"])

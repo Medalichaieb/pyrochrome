@@ -32,7 +32,7 @@ from pyrochrome.pipeline.atmosphere import (
 from pyrochrome.pipeline.color import srgb_to_lab
 from pyrochrome.pipeline.download import find_glazes_csv
 from pyrochrome.pipeline.features import build_features, clean_recipes
-from pyrochrome.pipeline.labels import color_family, surface_family
+from pyrochrome.pipeline.labels import color_family, surface_family, transparency_family
 
 MIN_CLASS_COUNT = 40  # drop colour families with fewer samples than this
 RGB_COLUMNS = ["rgb_r", "rgb_g", "rgb_b"]
@@ -132,6 +132,17 @@ def load_targets(
         title="Surface (Glossy / Matte / Satin)",
         X=_impute(df.loc[mask, feat_cols]),
         y=surface[mask].astype("object"),
+        feature_names=feat_cols,
+    )
+
+    # Transparency.
+    transparency = df["transparency_type"].apply(transparency_family)
+    mask = transparency.notna()
+    targets["transparency"] = TargetData(
+        name="transparency",
+        title="Transparency (Opaque / Semi-opaque / Translucent / Transparent)",
+        X=_impute(df.loc[mask, feat_cols]),
+        y=transparency[mask].astype("object"),
         feature_names=feat_cols,
     )
 

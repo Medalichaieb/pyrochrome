@@ -74,7 +74,28 @@ make check
 ```
 
 Other useful targets: `make baseline` (reproduce the reference RF/GradBoost
-baseline), `make compare` (cross-validate all candidate models), `make help`.
+baseline), `make compare` (cross-validate all candidate models), `make color`
+(Lab colour regression), `make neighbors` (nearest-recipe index), `make help`.
+
+### Serving predictions (API)
+
+Train the artifacts, then run the FastAPI service:
+
+```bash
+make train && make color && make neighbors      # writes models_out/*.joblib
+uv run uvicorn pyrochrome.api.main:app --reload  # http://127.0.0.1:8000
+```
+
+```bash
+curl -X POST localhost:8000/predict -H 'Content-Type: application/json' -d '{
+  "chemistry_umf": {"SiO2": 3.0, "Al2O3": 0.4, "CaO": 0.5, "K2O": 0.2, "CuO": 0.06},
+  "cone": "10", "atmosphere": "oxidation"
+}'
+```
+
+returns the predicted `surface`, `transparency` and `colour` (family + top-2 +
+confidence + Lab), plus the nearest real recipes — never a single over-confident
+colour.
 
 The web frontend lives in [`web/`](web/) (needs Node ≥ 20):
 

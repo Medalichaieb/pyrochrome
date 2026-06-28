@@ -68,6 +68,41 @@ def build_index(data: RegressionData, n_neighbors: int = DEFAULT_K) -> RecipeInd
     return RecipeIndex(scaler=scaler, nn=nn, feature_names=data.feature_names, reference=reference)
 
 
+def save_index(index: RecipeIndex, path: str | Path) -> None:
+    """Persist the index as a plain dict (not the dataclass).
+
+    Dumping a plain dict avoids the pickle pitfall where a dataclass defined in a
+    module run via ``python -m`` is recorded under ``__main__`` and then fails to
+    load in another process (e.g. the API server).
+
+    Args:
+        index: The fitted :class:`RecipeIndex`.
+        path: Destination ``.joblib`` path.
+    """
+    joblib.dump(
+        {
+            "scaler": index.scaler,
+            "nn": index.nn,
+            "feature_names": index.feature_names,
+            "reference": index.reference,
+        },
+        path,
+    )
+
+
+def load_index(path: str | Path) -> RecipeIndex:
+    """Load an index persisted by :func:`save_index`.
+
+    Args:
+        path: Path to the ``.joblib`` written by :func:`save_index`.
+
+    Returns:
+        The reconstructed :class:`RecipeIndex`.
+    """
+    bundle = joblib.load(path)
+    return RecipeIndex(**bundle)
+
+
 def query(index: RecipeIndex, x_row: np.ndarray, k: int = DEFAULT_K) -> pd.DataFrame:
     """Return the ``k`` nearest real recipes to a query feature vector.
 
@@ -94,7 +129,7 @@ def main() -> None:
     index = build_index(data)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUTPUT_DIR / "neighbors.joblib"
-    joblib.dump(index, path)
+    save_index(index, path)
     print(f"Built nearest-recipe index over {len(data.Y)} recipes -> {path}")
 
     # Demo: neighbours of the first recipe (should include itself at distance 0).

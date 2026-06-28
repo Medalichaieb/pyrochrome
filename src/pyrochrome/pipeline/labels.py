@@ -36,6 +36,24 @@ def surface_family(value: Any) -> float | str:
     return float("nan")
 
 
+def transparency_family(value: Any) -> float | str:
+    """Keep the canonical transparency classes, NaN otherwise.
+
+    Glazy's ``transparency_type`` is already clean (Opaque / Semi-opaque /
+    Translucent / Transparent); this just validates and drops anything else.
+
+    Args:
+        value: Raw transparency label, or missing.
+
+    Returns:
+        One of the four canonical classes, or ``float('nan')``.
+    """
+    if pd.isna(value):
+        return float("nan")
+    text = str(value)
+    return text if text in ("Opaque", "Semi-opaque", "Translucent", "Transparent") else float("nan")
+
+
 def color_family(r: Any, g: Any, b: Any) -> float | str:
     """Bucket an RGB triple into a perceptual colour family via HSV.
 
