@@ -3,7 +3,7 @@
  * predicted render — surface, transparency, colour (family + confidence + Lab) —
  * as a procedurally rendered tile, alongside the nearest real recipes.
  */
-import { ApiError, predict } from "../api";
+import { predict } from "../inference";
 import {
   CONES,
   DEFAULT_RECIPE,
@@ -272,9 +272,8 @@ export function renderPredict(host: HTMLElement): void {
       status.textContent = "";
       status.className = "status";
       showResult(result);
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
-      status.textContent = msg;
+    } catch {
+      status.textContent = "Could not run the model. Please try again.";
       status.className = "status is-error";
     }
   }

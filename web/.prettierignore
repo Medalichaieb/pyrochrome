@@ -1,2 +1,6 @@
 dist
 node_modules
+
+# Generated model artifacts (from `make export`) — not hand-edited.
+public/recipes.json
+src/model

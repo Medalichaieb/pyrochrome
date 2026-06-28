@@ -125,9 +125,9 @@ export function renderDocs(host: HTMLElement): void {
       el(
         "div",
         { class: "stat-grid" },
-        stat("~12,900", "recipes (cleaned)"),
-        stat("76.9%", "surface accuracy"),
-        stat("79.9%", "colour top-2"),
+        stat("~12,870", "recipes (cleaned)"),
+        stat("77.4%", "surface accuracy"),
+        stat("79.1%", "colour top-2"),
         stat("ΔE ≈ 33", "colour (Lab) error"),
       ),
 
@@ -199,15 +199,27 @@ export function renderDocs(host: HTMLElement): void {
         table(
           ["Target", "n", "Accuracy", "Macro-F1", "Top-2"],
           [
-            ["Surface", "8,397", "76.9%", "0.65", "91.3%"],
-            ["Transparency", "6,886", "66.0%", "0.61", "85.8%"],
-            ["Colour family", "5,511", "65.7%", "0.50", "79.9%"],
+            ["Surface", "8,384", "77.4%", "0.66", "91.9%"],
+            ["Transparency", "6,876", "65.8%", "0.61", "85.1%"],
+            ["Colour family", "5,500", "66.3%", "0.52", "79.1%"],
           ],
         ),
         el(
           "p",
           { class: "fine" },
           "Top-2 colour accuracy (≈80%) is the product-relevant metric: the right family is almost always in the model's top two guesses.",
+        ),
+        el("p", { class: "eyebrow cm-eyebrow" }, "The live demo"),
+        p(
+          "This site is fully static — predictions run ",
+          el("strong", {}, "in your browser"),
+          ", with no server. For that it uses a ",
+          el("strong", {}, "compact neural network"),
+          " exported from the same data and features. It is a little less accurate than the HistGradientBoosting figures above (≈72% surface, ≈57% colour top-1) — the trade for a zero-backend, always-on demo. The numbers in this page describe the full pipeline; the repository regenerates both with ",
+          el("code", { class: "inline-code" }, "make train"),
+          " / ",
+          el("code", { class: "inline-code" }, "make export"),
+          ".",
         ),
         el("p", { class: "eyebrow cm-eyebrow" }, "Where colour goes wrong"),
         p(

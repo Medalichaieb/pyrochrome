@@ -9,5 +9,5 @@
 - ``inference``        — load persisted artifacts + serve predictions (used by the API).
 - ``baseline``         — reference RandomForest / HistGradientBoosting reproduction.
 - ``evaluate``         — report: confusion, calibration, importances (``make eval``).
-- ``export``           — compact model → JSON for the in-browser predictor (TODO).
+- ``export``           — compact MLPs + recipes → JSON for the browser (``make export``).
 """

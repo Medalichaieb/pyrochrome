@@ -16,19 +16,21 @@ composition → render relationship from thousands of real recipes.
 
 ## Status
 
-Proof of concept **validated**. From UMF chemistry + cone alone (no atmosphere,
-noisy colour labels):
+The composition → render link is learnable. Selected model
+(**`HistGradientBoostingClassifier`**, chosen from a 5-fold CV comparison of
+RandomForest, ExtraTrees, HistGradientBoosting, LightGBM, XGBoost, MLP and
+LogReg), held-out test:
 
-| Target | Naïve baseline | Model (RF / GradBoost) |
-|---|---|---|
-| Surface (Glossy/Matte/Satin), n=8,397 | 60 % | **78 %** (F1-macro 0.68) |
-| Colour family (10 classes), n=5,511 | 45 % | **65 % top-1 / 80 % top-2** |
+| Target | n | Accuracy | Top-2 |
+|---|---|---|---|
+| Surface (Glossy / Matte / Satin) | 8,384 | **77.4 %** | 91.9 % |
+| Transparency (4 classes) | 6,876 | 65.8 % | 85.1 % |
+| Colour family (10 classes) | 5,500 | 66.3 % | **79.1 %** |
+| Colour (CIELAB regression) | 5,531 | ΔE ≈ 33 | R² 0.42 |
 
-The link is learnable. A 5-fold CV comparison (RandomForest, ExtraTrees,
-HistGradientBoosting, LightGBM, XGBoost, MLP, LogReg) selected
-**`HistGradientBoostingClassifier`** as the server model — see
-[MODEL_CARD.md](MODEL_CARD.md) and [results.md](results.md) for the full tables
-and rationale.
+Full tables, calibration and confusion matrices in
+[MODEL_CARD.md](MODEL_CARD.md), [results.md](results.md) and the evaluation
+report [`reports/REPORT.md`](reports/REPORT.md).
 
 **Lever #1 (atmosphere) — measured.** Multi-hot atmosphere features (from the
 YAML dump) were added and evaluated. The aggregate gain is negligible (contrary
@@ -77,40 +79,38 @@ Other useful targets: `make baseline` (reproduce the reference RF/GradBoost
 baseline), `make compare` (cross-validate all candidate models), `make color`
 (Lab colour regression), `make neighbors` (nearest-recipe index), `make help`.
 
-### Serving predictions (API)
-
-Train the artifacts, then run the FastAPI service:
-
-```bash
-make train && make color && make neighbors      # writes models_out/*.joblib
-uv run uvicorn pyrochrome.api.main:app --reload  # http://127.0.0.1:8000
-```
-
-```bash
-curl -X POST localhost:8000/predict -H 'Content-Type: application/json' -d '{
-  "chemistry_umf": {"SiO2": 3.0, "Al2O3": 0.4, "CaO": 0.5, "K2O": 0.2, "CuO": 0.06},
-  "cone": "10", "atmosphere": "oxidation"
-}'
-```
-
-returns the predicted `surface`, `transparency` and `colour` (family + top-2 +
-confidence + Lab), plus the nearest real recipes — never a single over-confident
-colour.
-
-### Web frontend
+### Web frontend (fully static)
 
 A sober, editorial single-page app (Vite + TypeScript, no framework) with two
 pages: **Predict** (chemistry → rendered tile + predictions + nearest recipes)
-and **Docs** (how the model and data work). It calls the API above; point it at
-a non-default API with `VITE_API_URL`.
+and **Docs** (how the model and data work). It runs predictions **entirely in
+the browser** from compact models exported by `make export` — no backend needed,
+so it deploys as a static site.
 
 ```bash
-cd web
-npm install
-VITE_API_URL=http://127.0.0.1:8000 npm run dev   # http://localhost:5173
+make export        # writes web/src/model/*.json + web/public/recipes.json
+cd web && npm install && npm run dev    # http://localhost:5173
 ```
 
 Needs Node ≥ 20. Build for production with `npm run build` (outputs `web/dist/`).
+
+### Optional API
+
+A FastAPI service (`pyrochrome.api.main`) serves the full HistGradientBoosting
+models over HTTP — an alternative to the in-browser models for non-static use.
+
+```bash
+make train && make color && make neighbors
+uv run uvicorn pyrochrome.api.main:app --reload   # POST /predict
+```
+
+### Deploy (Vercel, static)
+
+The site is static, so it hosts free with a clean `*.vercel.app` URL:
+
+1. Run `make export` and commit `web/src/model/*.json` + `web/public/recipes.json`.
+2. On Vercel: **Add New Project → import this repo → set Root Directory to `web`**
+   → Deploy. (`web/vercel.json` pins the Vite build + SPA fallback.)
 
 ## Repository structure
 

@@ -798,6 +798,15 @@ canvas.tile {
   background: linear-gradient(to right, rgba(189, 91, 51, 0.04), rgba(189, 91, 51, 1));
 }
 
+.inline-code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--paper-inset);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .code {
   background: var(--paper-inset);
   border: 1px solid var(--rule);
