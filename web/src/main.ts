@@ -8,6 +8,7 @@ import { startRouter } from "./router";
 import { renderPredict } from "./views/predict";
 import { renderDesign } from "./views/design";
 import { renderDocs } from "./views/docs";
+import { renderAbout } from "./views/about";
 
 function navLink(route: string, label: string): HTMLElement {
   return el("a", { href: `#${route}`, class: "nav-link", "data-route": route }, label);
@@ -37,6 +38,7 @@ function mount(): void {
         navLink("/predict", "Predict"),
         navLink("/design", "Design"),
         navLink("/docs", "Docs"),
+        navLink("/about", "About"),
       ),
     ),
   );
@@ -79,6 +81,7 @@ function mount(): void {
       { path: "/predict", view: renderPredict },
       { path: "/design", view: renderDesign },
       { path: "/docs", view: renderDocs },
+      { path: "/about", view: renderAbout },
     ],
     "/predict",
   );
