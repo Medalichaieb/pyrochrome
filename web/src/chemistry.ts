@@ -120,6 +120,46 @@ export const PRESETS: Preset[] = [
 
 export const CONES = ["06", "04", "1", "6", "8", "10"];
 
+/**
+ * The unit / standard the form values are entered in. Shown to the user so the
+ * numbers are unambiguous.
+ */
+export const UMF_STANDARD = {
+  short: "UMF · molar (Seger unity formula)",
+  long:
+    "Values are a Unity Molecular Formula (UMF / Seger): the RO + R₂O fluxes are " +
+    "normalised to sum to 1, and every other oxide — silica, alumina, boron, " +
+    "colorants — is expressed as a molar ratio to that flux unity. They are molar " +
+    "proportions, not weight percentages.",
+};
+
+/** A radar axis: a label, a display max, and the oxides (bare keys) summed for it. */
+export interface RadarAxis {
+  label: string;
+  max: number;
+  oxides: string[];
+}
+
+/** Axes positioning a glaze in chemistry space (clockwise from the top). */
+export const RADAR_AXES: RadarAxis[] = [
+  { label: "Silica", max: 5.0, oxides: ["SiO2"] },
+  { label: "Alumina", max: 0.8, oxides: ["Al2O3"] },
+  { label: "Boron", max: 0.6, oxides: ["B2O3"] },
+  { label: "Calcia", max: 0.9, oxides: ["CaO"] },
+  { label: "Magnesia", max: 0.6, oxides: ["MgO"] },
+  { label: "Alkali", max: 0.7, oxides: ["Na2O", "K2O"] },
+  { label: "Colorant", max: 0.35, oxides: ["Fe2O3", "CuO", "CoO", "MnO", "Cr2O3"] },
+];
+
+/**
+ * Normalised value (0–1) for an axis, given a lookup that returns the molar
+ * amount for a bare oxide key. Clamped so the polygon stays inside the chart.
+ */
+export function axisValue(axis: RadarAxis, lookup: (oxide: string) => number): number {
+  const sum = axis.oxides.reduce((acc, ox) => acc + (lookup(ox) || 0), 0);
+  return Math.max(0, Math.min(1, sum / axis.max));
+}
+
 /** Map a predicted transparency class to a glaze opacity (0–1). */
 export function transparencyToOpacity(label: string | undefined): number {
   switch (label) {

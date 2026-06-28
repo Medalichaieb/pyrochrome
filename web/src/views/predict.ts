@@ -9,6 +9,9 @@ import {
   DEFAULT_RECIPE,
   OXIDE_GROUPS,
   PRESETS,
+  RADAR_AXES,
+  UMF_STANDARD,
+  axisValue,
   deriveEffects,
   familyToHex,
   surfaceToRenderer,
@@ -16,8 +19,14 @@ import {
 } from "../chemistry";
 import { labToRgb, rgbToHex } from "../color";
 import { el } from "../dom";
+import { renderRadar, type RadarSeries } from "../radar";
 import { renderTile, type TileAttributes } from "../renderer";
-import type { Atmosphere, ClassPrediction, PredictResponse } from "../types";
+import type { Atmosphere, ClassPrediction, Neighbour, PredictResponse } from "../types";
+
+// Radar palette (literal colours — SVG presentation attrs don't read CSS vars).
+const INK_FAINT = "rgba(28, 26, 23, 0.18)";
+const CLAY = "#bd5b33";
+const CLAY_FILL = "rgba(189, 91, 51, 0.12)";
 
 interface State {
   chemistry: Record<string, number>;
@@ -53,13 +62,22 @@ function classRow(title: string, p: ClassPrediction | null): HTMLElement {
   );
 }
 
-function neighbourSwatch(n: PredictResponse["neighbours"][number]): HTMLElement {
-  const hex = rgbToHex({ r: n.rgb_r ?? 200, g: n.rgb_g ?? 200, b: n.rgb_b ?? 200 });
+function neighbourHex(n: Neighbour): string {
+  return rgbToHex({ r: n.rgb_r ?? 200, g: n.rgb_g ?? 200, b: n.rgb_b ?? 200 });
+}
+
+/** Radar values for a recipe, given a per-oxide molar lookup. */
+function radarValues(lookup: (oxide: string) => number): number[] {
+  return RADAR_AXES.map((axis) => axisValue(axis, lookup));
+}
+
+/** A legend entry: fired-colour dot + recipe name. */
+function neighbourLegendItem(n: Neighbour): HTMLElement {
   return el(
-    "figure",
-    { class: "swatch" },
-    el("span", { class: "swatch-chip", style: `background:${hex}` }),
-    el("figcaption", {}, el("span", { class: "swatch-name" }, n.name ?? "Untitled")),
+    "li",
+    { class: "legend-item" },
+    el("span", { class: "legend-dot", style: `background:${neighbourHex(n)}` }),
+    el("span", { class: "legend-name" }, n.name ?? "Untitled"),
   );
 }
 
@@ -122,13 +140,50 @@ export function renderPredict(host: HTMLElement): void {
       ),
     );
 
+    const neighbours = r.neighbours.slice(0, 6);
+    const series: RadarSeries[] = [
+      ...neighbours.map((n) => ({
+        values: radarValues((oxide) => Number(n[`${oxide}_umf`] ?? 0)),
+        stroke: INK_FAINT,
+        width: 1,
+        z: 0,
+      })),
+      {
+        values: radarValues((oxide) => state.chemistry[oxide] ?? 0),
+        stroke: CLAY,
+        fill: CLAY_FILL,
+        width: 2,
+        z: 1,
+      },
+    ];
+
     neighboursWrap.replaceChildren(
       el("p", { class: "eyebrow" }, "Nearest real recipes"),
-      el("div", { class: "swatch-row" }, ...r.neighbours.slice(0, 6).map(neighbourSwatch)),
+      el(
+        "div",
+        { class: "radar-wrap" },
+        renderRadar(
+          RADAR_AXES.map((a) => a.label),
+          series,
+        ),
+      ),
+      el(
+        "div",
+        { class: "radar-legend-wrap" },
+        el(
+          "p",
+          { class: "legend-key" },
+          el("span", { class: "legend-swatch you" }),
+          "Your recipe",
+          el("span", { class: "legend-swatch real" }),
+          "Real recipes",
+        ),
+        el("ul", { class: "legend" }, ...neighbours.map(neighbourLegendItem)),
+      ),
       el(
         "p",
         { class: "fine" },
-        "Real fired recipes closest in chemistry. Their colours can differ — that spread is the uncertainty a single prediction hides.",
+        "The spider plots your recipe (in unity formula) against the real fired recipes closest to it in chemistry. Where your outline sits inside their spread is where the model is on familiar ground.",
       ),
     );
   }
@@ -282,6 +337,17 @@ export function renderPredict(host: HTMLElement): void {
           ...atmButtons,
         ),
       ),
+    ),
+    el(
+      "div",
+      { class: "composition-head" },
+      el(
+        "p",
+        { class: "comp-title" },
+        "Composition",
+        el("span", { class: "unit-tag" }, UMF_STANDARD.short),
+      ),
+      el("p", { class: "unit-note" }, UMF_STANDARD.long),
     ),
     ...oxideGroups,
     el("div", { class: "actions" }, predictBtn, rerollBtn),

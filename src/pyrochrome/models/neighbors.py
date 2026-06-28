@@ -30,6 +30,23 @@ from pyrochrome.pipeline.color import srgb_to_lab
 OUTPUT_DIR = Path("models_out")
 DEFAULT_K = 8
 
+# UMF oxide columns carried on each neighbour so the frontend can place the
+# query recipe on a radar chart against the real recipes around it.
+RADAR_OXIDES = [
+    "SiO2_umf",
+    "Al2O3_umf",
+    "B2O3_umf",
+    "Na2O_umf",
+    "K2O_umf",
+    "CaO_umf",
+    "MgO_umf",
+    "Fe2O3_umf",
+    "CuO_umf",
+    "CoO_umf",
+    "MnO_umf",
+    "Cr2O3_umf",
+]
+
 
 @dataclass
 class RecipeIndex:
@@ -62,9 +79,12 @@ def build_index(data: RegressionData, n_neighbors: int = DEFAULT_K) -> RecipeInd
     scaled = scaler.transform(data.X.to_numpy())
     nn = NearestNeighbors(n_neighbors=n_neighbors, metric="euclidean").fit(scaled)
 
-    reference = data.reference.copy()
+    reference = data.reference.reset_index(drop=True).copy()
     lab = srgb_to_lab(reference[["rgb_r", "rgb_g", "rgb_b"]].to_numpy())
     reference[["lab_l", "lab_a", "lab_b"]] = lab
+    # Carry the radar oxides (those present) so neighbours include their chemistry.
+    radar_cols = [c for c in RADAR_OXIDES if c in data.X.columns]
+    reference[radar_cols] = data.X[radar_cols].reset_index(drop=True)
     return RecipeIndex(scaler=scaler, nn=nn, feature_names=data.feature_names, reference=reference)
 
 

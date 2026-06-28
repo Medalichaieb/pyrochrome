@@ -36,10 +36,12 @@ COLORANTS: dict[str, str] = {
 
 
 def clean_recipes(df: pd.DataFrame) -> pd.DataFrame:
-    """Keep only real, non-theoretical recipes.
+    """Keep only real, fired glaze recipes.
 
-    Drops chemical analyses, primitive materials and theoretical entries, which
-    are not fired glazes and would pollute the targets.
+    Drops chemical analyses, primitive materials and theoretical entries, plus
+    recipes with no silica in their UMF — overglazes such as lusters and metallics
+    that carry no glass chemistry and would pollute both the targets and the
+    nearest-recipe search (they have no oxides to compare on).
 
     Args:
         df: Raw Glazy glazes dataframe.
@@ -47,7 +49,13 @@ def clean_recipes(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         A filtered copy of ``df``.
     """
-    mask = (df["is_analysis"] == 0) & (df["is_primitive"] == 0) & (df["is_theoretical"] == 0)
+    silica = pd.to_numeric(df["SiO2_umf"], errors="coerce").fillna(0)
+    mask = (
+        (df["is_analysis"] == 0)
+        & (df["is_primitive"] == 0)
+        & (df["is_theoretical"] == 0)
+        & (silica > 0)
+    )
     return df[mask].copy()
 
 
