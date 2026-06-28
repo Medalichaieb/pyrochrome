@@ -2,7 +2,68 @@
  * Docs page: a clear, editorial account of the model and the data logic behind
  * Pyrochrome — what it learns, how, how well, and where it is honestly bounded.
  */
+import { COLOUR_CONFUSION, type ConfusionData } from "../data/confusion";
 import { el } from "../dom";
+
+/**
+ * Render a row-normalised confusion matrix as a designed, accessible table —
+ * clay intensity = probability, mono labels, hairline cells. Matches the page.
+ */
+function confusionMatrix(data: ConfusionData): HTMLElement {
+  const abbr = (label: string): string => label.slice(0, 3);
+
+  const headRow = el(
+    "tr",
+    {},
+    el("td", { class: "cm-corner" }),
+    ...data.labels.map((label) =>
+      el("th", { scope: "col", class: "cm-col", title: label }, abbr(label)),
+    ),
+  );
+
+  const bodyRows = data.matrix.map((row, i) =>
+    el(
+      "tr",
+      {},
+      el("th", { scope: "row", class: "cm-row" }, data.labels[i]),
+      ...row.map((v, j) => {
+        const pct = Math.round(v * 100);
+        const diagonal = i === j;
+        return el(
+          "td",
+          {
+            class: diagonal ? "cm-cell cm-diag" : "cm-cell",
+            // Clay intensity encodes the probability; text only where it reads.
+            style: `background:rgba(189,91,51,${v.toFixed(3)});color:${v > 0.5 ? "#fff" : "var(--ink-soft)"}`,
+            title: `true ${data.labels[i]} → predicted ${data.labels[j]}: ${pct}%`,
+          },
+          v >= 0.1 || diagonal ? String(pct) : "",
+        );
+      }),
+    ),
+  );
+
+  return el(
+    "figure",
+    { class: "cm-figure" },
+    el(
+      "div",
+      { class: "table-wrap" },
+      el(
+        "table",
+        { class: "cm", "aria-label": "Colour family confusion matrix, row-normalised" },
+        el("thead", {}, headRow),
+        el("tbody", {}, ...bodyRows),
+      ),
+    ),
+    el(
+      "figcaption",
+      { class: "cm-caption" },
+      el("span", { class: "cm-axis" }, "rows = true · columns = predicted"),
+      el("span", { class: "cm-scale" }, "0%", el("span", { class: "cm-scale-bar" }), "100%"),
+    ),
+  );
+}
 
 function section(eyebrow: string, title: string, ...body: (Node | string)[]): HTMLElement {
   return el(
@@ -148,6 +209,13 @@ export function renderDocs(host: HTMLElement): void {
           { class: "fine" },
           "Top-2 colour accuracy (≈80%) is the product-relevant metric: the right family is almost always in the model's top two guesses.",
         ),
+        el("p", { class: "eyebrow cm-eyebrow" }, "Where colour goes wrong"),
+        p(
+          "The confusion matrix reads row by row — of every recipe truly of one family, where does the model place it? A strong diagonal is good; the bright left column is the tell-tale ",
+          el("strong", {}, "bias toward “Blanc”"),
+          ", an artefact of white photo backgrounds bleeding into the colour labels.",
+        ),
+        confusionMatrix(COLOUR_CONFUSION),
       ),
 
       section(
