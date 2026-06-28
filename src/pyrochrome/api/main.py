@@ -86,11 +86,18 @@ class PredictRequest(BaseModel):
     atmosphere: Atmosphere = Field(..., description="Required firing atmosphere.")
 
 
-class ClassPrediction(BaseModel):
-    """A classification prediction with confidence and top-2."""
+class ClassProbability(BaseModel):
+    """A class label with the model's predicted probability for it."""
 
     label: str
-    top2: list[str] = Field(default_factory=list)
+    p: float = Field(..., ge=0.0, le=1.0)
+
+
+class ClassPrediction(BaseModel):
+    """A classification prediction: the top class, its confidence and the top-2."""
+
+    label: str
+    top2: list[ClassProbability] = Field(default_factory=list)
     confidence: float = Field(..., ge=0.0, le=1.0)
 
 

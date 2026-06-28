@@ -3,10 +3,16 @@
 /** Firing atmosphere — a required input (drives redox-sensitive colours). */
 export type Atmosphere = "oxidation" | "reduction" | "neutral";
 
+/** A class label with the model's predicted probability for it. */
+export interface ClassProbability {
+  label: string;
+  p: number;
+}
+
 /** A classification prediction with confidence and the top-2 classes. */
 export interface ClassPrediction {
   label: string;
-  top2: string[];
+  top2: ClassProbability[];
   confidence: number;
 }
 

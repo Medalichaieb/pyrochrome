@@ -469,9 +469,20 @@ canvas.tile {
 .readout-val b {
   font-weight: 600;
 }
+.readout-val .pct {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
 .readout-val .alt {
   color: var(--faint);
   font-size: 13px;
+}
+.readout-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 4px;
+  max-width: var(--prose);
 }
 .readout-val.mono {
   font-family: var(--mono);

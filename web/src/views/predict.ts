@@ -45,9 +45,15 @@ function confidenceBar(value: number): HTMLElement {
   );
 }
 
+function pct(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
 function classRow(title: string, p: ClassPrediction | null): HTMLElement {
   if (!p) return el("div", { class: "readout-row muted" }, title, el("b", {}, "—"));
-  const alt = p.top2[1] && p.top2[1] !== p.label ? ` · or ${p.top2[1]}` : "";
+  const second = p.top2[1];
+  const altText =
+    second && second.label !== p.label ? ` · then ${second.label} ${pct(second.p)}` : "";
   return el(
     "div",
     { class: "readout-row" },
@@ -56,7 +62,8 @@ function classRow(title: string, p: ClassPrediction | null): HTMLElement {
       "span",
       { class: "readout-val" },
       el("b", {}, p.label),
-      el("span", { class: "alt" }, alt),
+      el("span", { class: "pct mono" }, pct(p.confidence)),
+      el("span", { class: "alt" }, altText),
       confidenceBar(p.confidence),
     ),
   );
@@ -158,6 +165,11 @@ export function renderPredict(host: HTMLElement): void {
     });
 
     readout.replaceChildren(
+      el(
+        "p",
+        { class: "readout-note" },
+        "The model's best guess and its confidence (the bar / %), then its next most likely. Colour's top-2 is right ~80% of the time even when the single best guess is less sure.",
+      ),
       classRow("Colour", colour),
       classRow("Surface", r.surface),
       classRow("Transparency", r.transparency),

@@ -114,9 +114,11 @@ class Predictor:
         proba = model.predict_proba(x)[0]
         order = np.argsort(proba)[::-1]
         classes = model.classes_
+        # top-2 as {label, p} so the UI can show each class's probability.
+        top2 = [{"label": str(classes[i]), "p": float(proba[i])} for i in order[:2]]
         return {
             "label": str(classes[order[0]]),
-            "top2": [str(classes[i]) for i in order[:2]],
+            "top2": top2,
             "confidence": float(proba[order[0]]),
         }
 

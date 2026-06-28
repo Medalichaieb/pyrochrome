@@ -57,4 +57,9 @@ def test_predictor_predict_with_single_classifier() -> None:
     assert set(out) == {"surface"}  # only the loaded model is returned
     assert out["surface"]["label"] in {"Glossy", "Matte"}
     assert 0.0 <= out["surface"]["confidence"] <= 1.0
-    assert len(out["surface"]["top2"]) == 2
+    top2 = out["surface"]["top2"]
+    assert len(top2) == 2
+    # Each top-2 entry is {label, p}, ordered by descending probability.
+    assert top2[0]["label"] == out["surface"]["label"]
+    assert top2[0]["p"] >= top2[1]["p"]
+    assert all(0.0 <= t["p"] <= 1.0 for t in top2)
