@@ -160,6 +160,20 @@ export function axisValue(axis: RadarAxis, lookup: (oxide: string) => number): n
   return Math.max(0, Math.min(1, sum / axis.max));
 }
 
+/** Normalised radar values across every axis, for one recipe's oxide lookup. */
+export function radarValues(lookup: (oxide: string) => number): number[] {
+  return RADAR_AXES.map((axis) => axisValue(axis, lookup));
+}
+
+/** Pretty formula label for a bare oxide key (e.g. "SiO2" → "SiO₂"). */
+export function oxideLabel(key: string): string {
+  for (const group of OXIDE_GROUPS) {
+    const found = group.oxides.find((ox) => ox.key === key);
+    if (found) return found.label;
+  }
+  return key;
+}
+
 /** Map a predicted transparency class to a glaze opacity (0–1). */
 export function transparencyToOpacity(label: string | undefined): number {
   switch (label) {

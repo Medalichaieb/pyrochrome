@@ -184,7 +184,12 @@ def load_colour_regression(
     mask = rgb.notna().all(axis=1)
     lab = srgb_to_lab(rgb[mask].to_numpy())
 
-    reference_cols = [c for c in ["id", "name", *RGB_COLUMNS] if c in df.columns]
+    # Carry the canonical surface / transparency labels for target-driven search.
+    df["surface"] = df["surface_type"].apply(surface_family)
+    df["transparency"] = df["transparency_type"].apply(transparency_family)
+    reference_cols = [
+        c for c in ["id", "name", *RGB_COLUMNS, "surface", "transparency"] if c in df.columns
+    ]
     return RegressionData(
         X=_impute(df.loc[mask, feat_cols]),
         Y=lab,

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier, MLPRegressor
@@ -135,16 +136,19 @@ def export_neighbours(data: RegressionData) -> int:
     radar_values = data.X[radar_cols].to_numpy()
     reference = data.reference
 
+    def _label(row: Any, key: str) -> str | None:
+        value = row.get(key)
+        return None if value is None or pd.isna(value) else str(value)
+
     recipes = []
     for i in range(len(standardised)):
+        row = reference.iloc[i]
         recipes.append(
             {
-                "name": str(reference.iloc[i].get("name", "Untitled")),
-                "rgb": [
-                    int(reference.iloc[i]["rgb_r"]),
-                    int(reference.iloc[i]["rgb_g"]),
-                    int(reference.iloc[i]["rgb_b"]),
-                ],
+                "name": str(row.get("name", "Untitled")),
+                "rgb": [int(row["rgb_r"]), int(row["rgb_g"]), int(row["rgb_b"])],
+                "surface": _label(row, "surface"),
+                "transparency": _label(row, "transparency"),
                 "ox": [round(float(v), 4) for v in radar_values[i]],
                 "v": [round(float(v), 2) for v in standardised[i]],
             }

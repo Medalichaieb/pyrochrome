@@ -3,30 +3,24 @@
  * predicted render — surface, transparency, colour (family + confidence + Lab) —
  * as a procedurally rendered tile, alongside the nearest real recipes.
  */
+import { renderNeighbourChart, type ChartNeighbour } from "../components/neighbourChart";
 import { predict } from "../inference";
 import {
   CONES,
   DEFAULT_RECIPE,
   OXIDE_GROUPS,
   PRESETS,
-  RADAR_AXES,
   UMF_STANDARD,
-  axisValue,
   deriveEffects,
   familyToHex,
+  radarValues,
   surfaceToRenderer,
   transparencyToOpacity,
 } from "../chemistry";
-import { hexToRgb, hslToRgb, labToRgb, rgbToHex, rgbToHsl } from "../color";
+import { labToRgb, rgbToHex } from "../color";
 import { el } from "../dom";
-import { renderRadar, type RadarSeries } from "../radar";
 import { renderTile, type TileAttributes } from "../renderer";
 import type { Atmosphere, ClassPrediction, Neighbour, PredictResponse } from "../types";
-
-// Radar palette (literal colours — SVG presentation attrs don't read CSS vars).
-const INK_FAINT = "rgba(28, 26, 23, 0.18)";
-const CLAY = "#bd5b33";
-const CLAY_FILL = "rgba(189, 91, 51, 0.12)";
 
 interface State {
   chemistry: Record<string, number>;
@@ -73,11 +67,6 @@ function neighbourHex(n: Neighbour): string {
   return rgbToHex({ r: n.rgb_r ?? 200, g: n.rgb_g ?? 200, b: n.rgb_b ?? 200 });
 }
 
-/** Radar values for a recipe, given a per-oxide molar lookup. */
-function radarValues(lookup: (oxide: string) => number): number[] {
-  return RADAR_AXES.map((axis) => axisValue(axis, lookup));
-}
-
 /** Human-readable summary of the (illustrative) texture effects in play. */
 function describeEffects(fx: ReturnType<typeof deriveEffects>): string {
   const labels: [keyof typeof fx, string][] = [
@@ -89,36 +78,6 @@ function describeEffects(fx: ReturnType<typeof deriveEffects>): string {
   ];
   const active = labels.filter(([key]) => fx[key]).map(([, label]) => label);
   return active.length ? active.join(" · ") : "smooth, even";
-}
-
-/** Darken a too-light fired colour so its radar outline stays visible on paper. */
-function readableStroke(hex: string): string {
-  const { h, s, l } = rgbToHsl(hexToRgb(hex));
-  return l > 0.7 ? rgbToHex(hslToRgb(h, Math.min(1, s + 0.1), 0.5)) : hex;
-}
-
-/** A clickable legend entry: fired-colour dot + name, toggles its radar outline. */
-function neighbourLegendButton(
-  n: Neighbour,
-  index: number,
-  selected: boolean,
-  onToggle: (index: number) => void,
-): HTMLElement {
-  return el(
-    "li",
-    { class: "legend-item" },
-    el(
-      "button",
-      {
-        type: "button",
-        class: "legend-btn",
-        "aria-pressed": String(selected),
-        onclick: () => onToggle(index),
-      },
-      el("span", { class: "legend-dot", style: `background:${neighbourHex(n)}` }),
-      el("span", { class: "legend-name" }, n.name ?? "Untitled"),
-    ),
-  );
 }
 
 export function renderPredict(host: HTMLElement): void {
@@ -195,63 +154,16 @@ export function renderPredict(host: HTMLElement): void {
     // now re-roll its random placement.
     rerollBtn.disabled = false;
 
-    const neighbours = r.neighbours.slice(0, 6);
-    const labels = RADAR_AXES.map((a) => a.label);
-    const inputSeries: RadarSeries = {
-      values: radarValues((oxide) => state.chemistry[oxide] ?? 0),
-      stroke: CLAY,
-      fill: CLAY_FILL,
-      width: 2,
-      z: 2,
-    };
-    const neighbourValues = neighbours.map((n) =>
-      radarValues((oxide) => Number(n[`${oxide}_umf`] ?? 0)),
-    );
-
-    // null = show the whole neighbourhood faintly; an index = isolate that one.
-    let selected: number | null = null;
-    const radarHost = el("div", { class: "radar-wrap" });
-    const legend = el("ul", { class: "legend" });
-    const hint = el("p", { class: "legend-hint" });
-
-    const draw = (): void => {
-      const series: RadarSeries[] = [];
-      if (selected === null) {
-        neighbours.forEach((_, i) =>
-          series.push({ values: neighbourValues[i], stroke: INK_FAINT, width: 1, z: 0 }),
-        );
-      } else {
-        const stroke = readableStroke(neighbourHex(neighbours[selected]));
-        series.push({ values: neighbourValues[selected], stroke, width: 2.5, z: 1 });
-      }
-      series.push(inputSeries);
-      radarHost.replaceChildren(renderRadar(labels, series));
-
-      legend.replaceChildren(
-        ...neighbours.map((n, i) =>
-          neighbourLegendButton(n, i, selected === i, (index) => {
-            selected = selected === index ? null : index;
-            draw();
-          }),
-        ),
-      );
-      hint.textContent =
-        selected === null
-          ? "Select a recipe to isolate it on the chart."
-          : `Showing ${neighbours[selected].name ?? "selected recipe"} — select again to show all.`;
-    };
-    draw();
+    const referenceValues = radarValues((oxide) => state.chemistry[oxide] ?? 0);
+    const chartNeighbours: ChartNeighbour[] = r.neighbours.slice(0, 6).map((n) => ({
+      name: n.name ?? "Untitled",
+      values: radarValues((oxide) => Number(n[`${oxide}_umf`] ?? 0)),
+      colour: neighbourHex(n),
+    }));
 
     neighboursWrap.replaceChildren(
       el("p", { class: "eyebrow" }, "Nearest real recipes"),
-      radarHost,
-      el(
-        "div",
-        { class: "radar-legend-wrap" },
-        el("p", { class: "legend-key" }, el("span", { class: "legend-swatch you" }), "Your recipe"),
-        legend,
-        hint,
-      ),
+      renderNeighbourChart(referenceValues, chartNeighbours, "Your recipe"),
       el(
         "p",
         { class: "fine" },

@@ -64,6 +64,28 @@ export function labToRgb([l, a, b]: [number, number, number]): Rgb {
   };
 }
 
+/** Convert sRGB (0–255) to CIELAB (D65). Mirrors the server's srgb_to_lab. */
+export function srgbToLab({ r, g, b }: Rgb): [number, number, number] {
+  const lin = (c: number) => {
+    const x = c / 255;
+    return x > 0.04045 ? ((x + 0.055) / 1.055) ** 2.4 : x / 12.92;
+  };
+  const [rl, gl, bl] = [lin(r), lin(g), lin(b)];
+  const x = rl * 0.4124564 + gl * 0.3575761 + bl * 0.1804375;
+  const y = rl * 0.2126729 + gl * 0.7151522 + bl * 0.072175;
+  const z = rl * 0.0193339 + gl * 0.119192 + bl * 0.9503041;
+  const eps = 216 / 24389;
+  const kappa = 24389 / 27;
+  const f = (t: number) => (t > eps ? Math.cbrt(t) : (kappa * t + 16) / 116);
+  const [fx, fy, fz] = [f(x / WHITE_D65[0]), f(y / WHITE_D65[1]), f(z / WHITE_D65[2])];
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+/** CIE76 colour difference (Euclidean distance in Lab). */
+export function deltaE76(a: [number, number, number], b: [number, number, number]): number {
+  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+}
+
 /** RGB (0–255) → HSL (h,s,l in 0–1). */
 export function rgbToHsl({ r, g, b }: Rgb): { h: number; s: number; l: number } {
   r /= 255;

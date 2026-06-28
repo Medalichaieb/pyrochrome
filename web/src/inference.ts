@@ -12,6 +12,7 @@ import classifierSurface from "./model/classifier_surface.json";
 import classifierTransparency from "./model/classifier_transparency.json";
 import regressorLab from "./model/regressor_lab.json";
 import { coneToOrdinal } from "./cones";
+import { loadRecipes, type RecipesData } from "./recipes";
 import type {
   ClassPrediction,
   ClassProbability,
@@ -38,12 +39,6 @@ interface RegressorModel {
   feature_names: string[];
   scaler: Scaler;
   layers: Layer[];
-}
-interface RecipesData {
-  feature_names: string[];
-  scaler: Scaler;
-  radar_oxides: string[];
-  recipes: { name: string; rgb: [number, number, number]; ox: number[]; v: number[] }[];
 }
 
 const SURFACE = classifierSurface as unknown as ClassifierModel;
@@ -102,16 +97,6 @@ function regressLab(model: RegressorModel, req: PredictRequest): [number, number
   const x = standardise(buildVector(model.feature_names, req), model.scaler);
   const [l, a, b] = forward(model.layers, x);
   return [l, a, b];
-}
-
-let recipesCache: RecipesData | null = null;
-
-async function loadRecipes(): Promise<RecipesData> {
-  if (!recipesCache) {
-    const res = await fetch(`${import.meta.env.BASE_URL}recipes.json`);
-    recipesCache = (await res.json()) as RecipesData;
-  }
-  return recipesCache;
 }
 
 function nearestRecipes(data: RecipesData, req: PredictRequest, k: number): Neighbour[] {

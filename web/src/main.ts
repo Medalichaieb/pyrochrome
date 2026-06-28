@@ -6,6 +6,7 @@ import "./style.css";
 import { el } from "./dom";
 import { startRouter } from "./router";
 import { renderPredict } from "./views/predict";
+import { renderDesign } from "./views/design";
 import { renderDocs } from "./views/docs";
 
 function navLink(route: string, label: string): HTMLElement {
@@ -34,6 +35,7 @@ function mount(): void {
         "nav",
         { class: "nav", "aria-label": "Primary" },
         navLink("/predict", "Predict"),
+        navLink("/design", "Design"),
         navLink("/docs", "Docs"),
       ),
     ),
@@ -75,6 +77,7 @@ function mount(): void {
     main,
     [
       { path: "/predict", view: renderPredict },
+      { path: "/design", view: renderDesign },
       { path: "/docs", view: renderDocs },
     ],
     "/predict",
